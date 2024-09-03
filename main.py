@@ -143,7 +143,7 @@ if __name__ == '__main__':
     log = model_sim.simulate(best_solution, 0)
     
 ####### some demo plots
-    plt.style.use('seaborn-darkgrid')
+    #plt.style.use('seaborn-darkgrid')
 
     fig, axs = plt.subplots(3)
     fig.suptitle('For demo purpose only \n These results are not converged')
@@ -159,7 +159,7 @@ if __name__ == '__main__':
     axs[2].set_xlabel('Time [months]')
     axs[2].set_ylabel('Storage [AF]')
 
-    
+    fig.savefig("plot_example.png")
     
     
     
