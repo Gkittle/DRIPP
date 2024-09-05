@@ -15,8 +15,7 @@ line 113.
 import sys
 sys.path.append('src')
 sys.path.append('ptreeopt')
-from simulation import SB
-from sim_individual import SBsim
+from src import SB, SBsim
 from src import *
 from ptreeopt import PTreeOpt, MultiprocessingExecutor
 import logging

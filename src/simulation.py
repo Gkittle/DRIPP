@@ -47,7 +47,7 @@ class SB(object):
         self.mds   = np.loadtxt('data/mission_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
         self.sri12 = np.loadtxt('data/gibrSRI12_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
         self.sri36 = np.loadtxt('data/gibrSRI36_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
-        self.nsim        = 5 
+        self.nsim  = 5
 
         actions = []
         for act in action_name:
