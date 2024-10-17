@@ -1,4 +1,4 @@
-action,capacity,om,cx,t_depl,lifetime,action_type
+action,capacity (af/month),OPEX ($10^6/af/year),CAPEX($10^6),time to deployment (month),lifetime (year),action_type
 nothing,0,0,0,1,1,0
 SW200,200,1.86547,29.15983,120,40,0
 SW300,300,2.59251,36.26095,120,40,0

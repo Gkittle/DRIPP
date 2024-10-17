@@ -23,6 +23,8 @@ import csv
 import pickle
 import matplotlib.pyplot as plt
 import numpy as np
+import argparse
+import pandas as pd
 
 # set optimization parameters
 class OptimizationParameters(object):
@@ -37,27 +39,36 @@ class Result():
     pass
 
 #initialize action table
-action = []
-capacity = []
-om = []
-cx = []
-param = []
-lifetime = []
-t_depl = []
-action_type = []
+action = [] #Action Name
+capacity = [] #Capacity (Acre-Feet/Month)
+om = [] #Operation and Maintenance Costs (Million Dollars/ Acre-Feet/ Year)
+cx = [] #CAPEX (Million Dollars)
+lifetime = [] #Years
+t_depl = [] #Time to Deployment (Month)
+action_type = [] # types 1: Deploy Centralized Infrastructure, 2: Commision Decentralized Infrastructure, 3: Decommission Centralized Infrastructure, 4: Decommission Centralized Infrastructure, 5: Conservation
 
 #read action table
-i = 0
-with open('data/actions_loc.txt') as csv_file:
-    csv_reader = csv.reader(csv_file, delimiter='\t')
-    for row in csv_reader:
-        action.append(row[0])
-        capacity.append(row[1])
-        om.append(row[2])
-        cx.append(row[3])
-        t_depl.append(row[4])
-        lifetime.append(row[5])
-        action_type.append(int(row[6]))
+#i = 0
+#with open('data/actions_loc.txt') as csv_file:
+#    csv_reader = csv.reader(csv_file, delimiter='\t')
+#    for row in csv_reader:
+#        action.append(row[0])
+#        capacity.append(row[1])
+#        om.append(row[2]) #opex
+#        cx.append(row[3])
+#        t_depl.append(row[4])
+#        lifetime.append(row[5])
+#        action_type.append(int(row[6]))
+
+df_actions_table = pd.read_csv("data/actions_table.csv")
+action = df_actions_table['action'].values
+capacity = df_actions_table['capacity (af/month)'].values
+om = df_actions_table['OPEX ($10^6/af/year)'].values
+cx = df_actions_table['CAPEX($10^6)'].values
+t_depl = df_actions_table['time to deployment (month)'].values
+lifetime = df_actions_table['lifetime (year)'].values
+action_type = [int(val) for val in df_actions_table['action_type'].values]
+
 
 
 action_name = [[], [], [], [], []]
@@ -87,7 +98,7 @@ algorithm = PTreeOpt(model.simulate,
                      action_names=action_name,
                      mu=10, 
                      cx_prob=0.70,
-                     population_size=10, #set this parameter to 100 for full scale optimization 
+                     population_size=10, #set this parameter to 100 for full scale optimization and to 10 for scaled down 
                      max_depth=3,
                      multiobj=False,
                      )
@@ -97,11 +108,11 @@ if __name__ == '__main__':
     seed = 1 # initializing random seed
     
 ##### uncomment the following for random seed initialization on computing cluster #####
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument("process", help="seed number")
-    # args = parser.parse_args()
-    # seed = int(args.process)
-    # np.random.rand(seed)
+    #parser = argparse.ArgumentParser()
+    #parser.add_argument("process", help="seed number")
+    #args = parser.parse_args()
+    #seed = int(args.process)
+    #np.random.rand(seed)
 
 
     logging.basicConfig(level=logging.INFO,
@@ -113,7 +124,7 @@ if __name__ == '__main__':
 ##### set following condition to 1 for full scale optimization on computing cluster
     if 0:
         with MultiprocessingExecutor(processes=opt_par.cores) as executor:
-            best_solution, best_score, snapshots = algorithm.run(max_nfe=300000,
+            best_solution, best_score, snapshots = algorithm.run(max_nfe=300000, #max_nfe in full scale is 300,000
                                                          log_frequency=100,
                                                          snapshot_frequency=100,
                                                          executor=executor,
