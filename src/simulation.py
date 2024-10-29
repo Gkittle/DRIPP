@@ -47,7 +47,7 @@ class SB(object):
         self.mds   = np.loadtxt('data/mission_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
         self.sri12 = np.loadtxt('data/gibrSRI12_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
         self.sri36 = np.loadtxt('data/gibrSRI36_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
-        self.nsim  = 5
+        self.nsim  = 50 #originally 5, the number of rows in the inflow data you read in, the rows correspond with random scenarios of inflow
 
         actions = []
         for act in action_name:
@@ -146,7 +146,7 @@ class SB(object):
                 allocat36t   = self.compute_alloc(t, nc+nswp, 3)
                 allocat60t   = self.compute_alloc(t, nc+nswp, 5)
     
-                delta12t     = self.compute_deltas(t, sc, 12)
+                delta12t     = self.compute_deltas(t, sc, 12) #delta storage over 1 year
                 delta36t     = self.compute_deltas(t, sc, 36)
                 delta60t     = self.compute_deltas(t, sc, 60)
     

@@ -32,7 +32,7 @@ class OptimizationParameters(object):
         self.cores    = 36 # this value is used only in the full scale optimization
         self.nseeds   = 1
         self.nobjs    = 1
-        self.drought_type = [87, 0.83, 2] # set drought type here
+        self.drought_type = [87, 0.83, 2] # set drought type here [Persistence (months), Intensity (unitless), Frequency (droughts/100 years)]
 
 #create Result class
 class Result():
@@ -47,19 +47,7 @@ lifetime = [] #Years
 t_depl = [] #Time to Deployment (Month)
 action_type = [] # types 1: Deploy Centralized Infrastructure, 2: Commision Decentralized Infrastructure, 3: Decommission Centralized Infrastructure, 4: Decommission Centralized Infrastructure, 5: Conservation
 
-#read action table
-#i = 0
-#with open('data/actions_loc.txt') as csv_file:
-#    csv_reader = csv.reader(csv_file, delimiter='\t')
-#    for row in csv_reader:
-#        action.append(row[0])
-#        capacity.append(row[1])
-#        om.append(row[2]) #opex
-#        cx.append(row[3])
-#        t_depl.append(row[4])
-#        lifetime.append(row[5])
-#        action_type.append(int(row[6]))
-
+#Read the action table
 df_actions_table = pd.read_csv("data/actions_table.csv")
 action = df_actions_table['action'].values
 capacity = df_actions_table['capacity (af/month)'].values
@@ -68,8 +56,6 @@ cx = df_actions_table['CAPEX($10^6)'].values
 t_depl = df_actions_table['time to deployment (month)'].values
 lifetime = df_actions_table['lifetime (year)'].values
 action_type = [int(val) for val in df_actions_table['action_type'].values]
-
-
 
 action_name = [[], [], [], [], []]
 i = 0

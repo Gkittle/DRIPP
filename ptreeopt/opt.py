@@ -62,7 +62,7 @@ class PTreeOpt(object):
                  cx_prob=0.9, feature_names=None,
                  discrete_features=None, multiobj=True, epsilons=None, num_policies = 1):
 
-        self.f = functools.partial(function_runner, f)
+        self.f = functools.partial(function_runner, f) #assigning f as the func in function_runner for this object so you call function_runner(solution)
         self.num_features = len(feature_bounds)
         self.feature_bounds = feature_bounds
         self.discrete_actions = discrete_actions
@@ -196,6 +196,8 @@ class PTreeOpt(object):
         self.best_p = None
 
         self.population = np.array( [self.random_individual() for _ in range(self.popsize)])
+
+        #extend_opt not currently used TBD what it is for
         if len(extend_opt):
             for p in range(len(extend_opt)):
                 self.population[p] = extend_opt[p]
@@ -239,7 +241,7 @@ class PTreeOpt(object):
                     logger.info(self.process_log_message.format(nfe,
                                     elapsed, self.best_f))
                 else:
-                    # TODO:: to be tested
+                    # TODO:: to be tested (artifact from Herman group not Marta)
                     logger.info('# nfe = %d\n%s\n%s' % (nfe, self.best_f,
                                                     self.best_f.shape))
 
