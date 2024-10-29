@@ -18,11 +18,11 @@ class Cachuma(Lake):
         self.max_release = 1500 #AF/month
         self.A  = 1
         if drought_type == [0,0,0]:
-            self.inflow  = np.loadtxt('data/mix_all_cachuma_cali.txt')
+            self.inflow  = np.loadtxt('data/Inflow_Mixed_Scenarios/mix_all_cachuma_cali.txt')
         elif drought_type == [1,1,1]:
-            self.inflow  = np.loadtxt('data/mix_all_cachuma_vali.txt')
+            self.inflow  = np.loadtxt('data/Inflow_Mixed_Scenarios/mix_all_cachuma_vali.txt')
         else:
-            self.inflow  = np.loadtxt('data/all_cachuma_pers'+str(drought_type[0])+'_sev'+str(drought_type[1])+'n_'+str(drought_type[2])+'.txt')
+            self.inflow  = np.loadtxt('data/Inflow_Individual_Scenarios/all_cachuma_pers'+str(drought_type[0])+'_sev'+str(drought_type[1])+'n_'+str(drought_type[2])+'.txt')
 
 
         self.Ny      = int(np.size(self.inflow))

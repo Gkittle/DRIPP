@@ -18,11 +18,11 @@ class Gibraltar(Lake):
         self.A  = 1
         
         if drought_type == [0,0,0]:
-            self.inflow  = np.loadtxt('data/mix_gibr_cali.txt') 
+            self.inflow  = np.loadtxt('data/Inflow_Mixed_Scenarios/mix_gibr_cali.txt') 
         elif drought_type == [1,1,1]:
-            self.inflow  = np.loadtxt('data/mix_gibr_vali.txt') 
+            self.inflow  = np.loadtxt('data/Inflow_Mixed_Scenarios/mix_gibr_vali.txt') 
         else:
-            self.inflow  = np.loadtxt('data/gibr_pers'+str(drought_type[0])+'_sev'+str(drought_type[1])+'n_'+str(drought_type[2])+'.txt')
+            self.inflow  = np.loadtxt('data/Inflow_Individual_Scenarios/gibr_pers'+str(drought_type[0])+'_sev'+str(drought_type[1])+'n_'+str(drought_type[2])+'.txt')
             
         self.Ny      = 100 #number of simulation years
         self.H       = 1200 
