@@ -126,7 +126,6 @@ def plot_trajectories(param, opt_par, s):
     H = sim.H
     sc, rc, sgi, rgi, sgw, rgw, rd, sswp, rswp, r_mw, rt = sim.get_traj(param)
 
-    
     plt.style.use('seaborn-darkgrid')
 
     fig, axs = plt.subplots(2,2)

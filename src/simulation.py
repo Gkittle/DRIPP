@@ -41,7 +41,7 @@ class SB(object):
         self.H           = self.gibraltar.H # length of time horizon
         self.Ny          = int(self.H/self.T) #number of years
         self.demand      = np.loadtxt('data/SB_water_demand.txt') 
-        self.nom_cost_sw = 100 
+        self.nom_cost_sw = 100
         self.nom_cost_rs = 420 
 
         self.mds   = np.loadtxt('data/Inflow_Individual_Scenarios/mission_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
