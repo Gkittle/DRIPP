@@ -1,65 +1,80 @@
 import numpy as np
-import pandas as pd
-import sys
-import time
 import random
 
-start_time = time.time()
-
 class MDP:
-    def __init__(self, gamma, state_space, action_space):
-        self.gamma = gamma  # Discount factor
-        self.state_space = state_space  # State space
-        self.action_space = action_space  # Action space
-
-def epsilon_greedy_exploration(model, s, epsilon):
-
-    A = model.action_space  # Action space
-    if random.random() < epsilon:
-        return random.choice(A)
     
-    def Q(s, a):
-        return model.lookahead(s, a)
+    def __init__(self, gamma, state_space, action_space, T, R, TR):
+        self.gamma = gamma
+        self.state_space = state_space
+        self.action_space = action_space
+        self.T = T
+        self.R = R
+        self.TR = TR
+
+
+class EpsilonGreedyExploration:
     
-    return max(A, key=lambda a: Q(s, a))
+    def __init__(self, epsilon):
+        self.epsilon = epsilon
+
+    def __call__(self, model, s):
+        
+        A = model.action_space
+        if random.random() < self.epsilon:
+            return random.choice(A)
+        else:
+            return np.argmax([model.lookahead(s, a) for a in A])
+
 
 class QLearning:
+    
     def __init__(self, state_space, action_space, gamma, Q, alpha):
-        self.state_space = state_space  # State space
-        self.action_space = action_space  # Action space
-        self.gamma = gamma  # Discount factor
-        self.Q = Q  # Action-value function
-        self.alpha = alpha  # Learning rate
+        self.state_space = state_space
+        self.action_space = action_space
+        self.gamma = gamma
+        self.Q = Q
+        self.alpha = alpha
+
+    def lookahead(self, s, a):
+        return self.Q[s, a]
 
     def update(self, s, a, r, s_prime):
-        self.Q[s, a] += self.alpha * (r + self.gamma * np.max(self.Q[s_prime, :]) - self.Q[s, a])
-        return self
-    
-    
-def simulate(P, model, policy, h, s):
+        max_next_q = np.max(self.Q[s_prime, :])
+        self.Q[s, a] += self.alpha * (r + self.gamma * max_next_q - self.Q[s, a])
 
+
+def simulate(P, model, policy, h, s):
     for _ in range(h):
-        # Determine action using the policy
+        # Select action using the policy
         a = policy(model, s)
-        # Apply the action and get the next state and reward
+        # Sample transition and reward
         s_prime, r = P.TR(s, a)
-        # Update the model with the new experience
+        # Update the model
         model.update(s, a, r, s_prime)
         # Move to the next state
         s = s_prime
 
 
+# Initialize MDP and parameters
+state_space = range(10)  # Example state space
+action_space = range(5)  # Example action space
+gamma = 0.9  # Discount factor
+T = lambda s, a: (s + a) % len(state_space)  # Example transition function
+R = lambda s, a: -abs(s - a)  # Example reward function
+TR = lambda s, a: (T(s, a), R(s, a))  # Combined transition-reward function
 
-# Initialization of Q-learning parameters
-alpha = 0.1 # Learning rate
+P = MDP(gamma, state_space, action_space, T, R, TR)
 
-P = MDP(states, actions, 0.9)
-Q = np.zeros((len(states), len(actions)))
-model = QLearning(P.state_space, P.action_space, P.gamma, Q, alpha)
-policy = epsilon_greedy_exploration(0.1)
-h = 20 #number of steps to simulate
-s = 1 #initial state
-simulate(P, model, policy, h, s)
+# Initialize Q-learning model
+Q = np.zeros((len(state_space), len(action_space)))
+alpha = 0.2
+model = QLearning(state_space, action_space, gamma, Q, alpha)
 
-Q_final = model.Q
-pi_final = np.argmax(Q_final, axis = 1)
+# Initialize policy
+epsilon = 0.1
+policy = EpsilonGreedyExploration(epsilon)
+
+# Simulate
+k = 20  # Number of steps
+initial_state = 0
+simulate(P, model, policy, k, initial_state)
