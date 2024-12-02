@@ -100,7 +100,7 @@ class SB(object):
         self.t                 = 0
         
 
-    def simulate(self, P, randseed):
+    def simulate(self, a, randseed):
         
         self.H  = self.gibraltar.H 
         H       = self.H
@@ -192,13 +192,15 @@ class SB(object):
                         delta12t, delta36t, delta60t,
                         installed, und_constr, curtail_t]
 
-        # extract action from policy 
-        policy_cen, rules_cen = P[0].evaluate(indicators) #commiss central
-        policy_dec, rules_dec = P[1].evaluate(indicators) #commiss decentral
-        policy_con, rules_con = P[2].evaluate(indicators) #commiss curtail
-        policy_rmc, rules_rmc = P[3].evaluate(indicators) #decomm central
-        policy_rmd, rules_rmd = P[4].evaluate(indicators) #decomm decentral
-        
+        # extract action from policy
+        action_decode = []
+        for i in ['nothing','SW200','SW300','SW400','SW500','PR200','PR300','PR400','PR500','NPR100']:
+            for j in ['nothing','SW200','SW300','SW400','SW500','PR200','PR300','PR400','PR500','NPR100']:
+                for k in ['nothing','NPR20','PR50']:
+                    for l in ['nothing','NPR20','PR50']:
+                        for m in ['nothing','d5','d10','d15','d20']:
+                            action_decode.append([i,j,k,l,m])
+        policy_cen, policy_rmc, policy_dec, policy_rmd, policy_con = action_decode[a]
 
         Location['Desal']  = desal_loc[t]
         Location['WWTP']   = wwtp_loc[t]
@@ -209,7 +211,7 @@ class SB(object):
         Location['L5']     = l5_loc[t]
         Location['L6']     = l6_loc[t]
         Location['L7']     = l7_loc[t]
-        count += 1
+        #count += 1
 
         # read policy decisions and implement it in model
         # centralized decisions
@@ -233,28 +235,27 @@ class SB(object):
                 
         # decentralized decisions        
         if any( [policy_dec=='PR50', policy_dec=='NPR20'] ):
-            if count > 5:
-                if Location['L1'] == 0:
-                    uc_capac, l1_loc, l1_capac = self.location_track(policy_dec, t, uc_capac, l1_loc, l1_capac)
-                    count = 0
-                elif Location['L2'] == 0:
-                    uc_capac, l2_loc, l2_capac = self.location_track(policy_dec, t, uc_capac, l2_loc, l2_capac)
-                    count = 0
-                elif Location['L3'] == 0:
-                    uc_capac, l3_loc, l3_capac = self.location_track(policy_dec, t, uc_capac, l3_loc, l3_capac)
-                    count = 0
-                elif Location['L4'] == 0:
-                    uc_capac, l4_loc, l4_capac = self.location_track(policy_dec, t, uc_capac, l4_loc, l4_capac)
-                    count = 0
-                elif Location['L5'] == 0:
-                    uc_capac, l5_loc, l5_capac = self.location_track(policy_dec, t, uc_capac, l5_loc, l5_capac)
-                    count = 0
-                elif Location['L6'] == 0:
-                    uc_capac, l6_loc, l6_capac = self.location_track(policy_dec, t, uc_capac, l6_loc, l6_capac)
-                    count = 0
-                elif Location['L7'] == 0:
-                    uc_capac, l7_loc, l7_capac = self.location_track(policy_dec, t, uc_capac, l7_loc, l7_capac)
-                    count = 0
+            if Location['L1'] == 0:
+                uc_capac, l1_loc, l1_capac = self.location_track(policy_dec, t, uc_capac, l1_loc, l1_capac)
+                #count = 0
+            elif Location['L2'] == 0:
+                uc_capac, l2_loc, l2_capac = self.location_track(policy_dec, t, uc_capac, l2_loc, l2_capac)
+                #count = 0
+            elif Location['L3'] == 0:
+                uc_capac, l3_loc, l3_capac = self.location_track(policy_dec, t, uc_capac, l3_loc, l3_capac)
+                #count = 0
+            elif Location['L4'] == 0:
+                uc_capac, l4_loc, l4_capac = self.location_track(policy_dec, t, uc_capac, l4_loc, l4_capac)
+                #count = 0
+            elif Location['L5'] == 0:
+                uc_capac, l5_loc, l5_capac = self.location_track(policy_dec, t, uc_capac, l5_loc, l5_capac)
+                #count = 0
+            elif Location['L6'] == 0:
+                uc_capac, l6_loc, l6_capac = self.location_track(policy_dec, t, uc_capac, l6_loc, l6_capac)
+                #count = 0
+            elif Location['L7'] == 0:
+                uc_capac, l7_loc, l7_capac = self.location_track(policy_dec, t, uc_capac, l7_loc, l7_capac)
+                #count = 0
 
         if l1_loc[t]>0: #at least one distributed plant
             if any( [policy_rmd=='PR50', policy_rmd=='NPR20'] ):

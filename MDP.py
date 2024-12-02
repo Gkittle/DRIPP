@@ -57,7 +57,7 @@ def simulate(P, model, policy, h, s):
 
 # Initialize MDP and parameters
 state_space = range(10)  # Example state space
-action_space = range(5)  # Example action space
+action_space = range(4500)
 gamma = 0.9  # Discount factor
 T = lambda s, a: (s + a) % len(state_space)  # Example transition function
 R = lambda s, a: -abs(s - a)  # Example reward function
