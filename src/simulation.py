@@ -46,8 +46,8 @@ class SB(object):
         self.nom_cost_rs = 420 
 
         self.mds   = np.loadtxt('data/Inflow_Individual_Scenarios/mission_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
-        self.sri12 = np.loadtxt('data/Inflow_Individual_Scenarios/gibrSRI12_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
-        self.sri36 = np.loadtxt('data/Inflow_Individual_Scenarios/gibrSRI36_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
+        #self.sri12 = np.loadtxt('data/Inflow_Individual_Scenarios/gibrSRI12_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
+        #self.sri36 = np.loadtxt('data/Inflow_Individual_Scenarios/gibrSRI36_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
         #self.nsim  = 50 #originally 5, the number of rows in the inflow data you read in, the rows correspond with random scenarios of inflow
 
         actions = []
@@ -119,15 +119,15 @@ class SB(object):
         ngi = []
         nswp = []
         md = []
-        sri12 = []
-        sri36 = []
+        #sri12 = []
+        #sri36 = []
 
         nc    = list( ncs[s,:] ) 
         ngi   = list( ngis[s,:] )
         nswp  = list( nswps[s,:] )   
         md    = list( self.mds[s,:] ) 
-        sri12 = list( self.sri12[s,:] ) 
-        sri36 = list( self.sri36[s,:] )
+        #sri12 = list( self.sri12[s,:] ) 
+        #sri36 = list( self.sri36[s,:] )
         
         sc      = [self.cachuma.s0]
         sgi     = [self.gibraltar.s0]
@@ -170,27 +170,27 @@ class SB(object):
 
         # compute value of indicators at time t
 
-        storage_t    = self.compute_stor(sc + sswp + sgi)
+        #storage_t    = self.compute_stor(sc + sswp + sgi)
 
-        allocat12t   = self.compute_alloc(t, nc+nswp, 1)
-        allocat36t   = self.compute_alloc(t, nc+nswp, 3)
-        allocat60t   = self.compute_alloc(t, nc+nswp, 5)
+        #allocat12t   = self.compute_alloc(t, nc+nswp, 1)
+        #allocat36t   = self.compute_alloc(t, nc+nswp, 3)
+        #allocat60t   = self.compute_alloc(t, nc+nswp, 5)
 
-        delta12t     = self.compute_deltas(t, sc, 12) #delta storage over 1 year
-        delta36t     = self.compute_deltas(t, sc, 36)
-        delta60t     = self.compute_deltas(t, sc, 60)
+        #delta12t     = self.compute_deltas(t, sc, 12) #delta storage over 1 year
+        #delta36t     = self.compute_deltas(t, sc, 36)
+        #delta60t     = self.compute_deltas(t, sc, 60)
 
-        sri12t       = sri12[t]
-        sri36t       = sri36[t]
+        #sri12t       = sri12[t]
+        #sri36t       = sri36[t]
 
-        installed    = installed_capacity[t]
-        und_constr   = uc_capac[t]
-        curtail_t    = reduction_amount[t]
+        #installed    = installed_capacity[t]
+        #und_constr   = uc_capac[t]
+        #curtail_t    = reduction_amount[t]
 
-        indicators = [storage_t, sri12t, sri36t,
-                        allocat12t, allocat36t, allocat60t,
-                        delta12t, delta36t, delta60t,
-                        installed, und_constr, curtail_t]
+        #indicators = [storage_t, sri12t, sri36t,
+        #                allocat12t, allocat36t, allocat60t,
+        #                delta12t, delta36t, delta60t,
+        #                installed, und_constr, curtail_t]
 
         # extract action from policy
         action_decode = []
@@ -213,25 +213,36 @@ class SB(object):
         Location['L7']     = l7_loc[t]
         #count += 1
 
+        infra_penalty = 0
         # read policy decisions and implement it in model
         # centralized decisions
         if any( [policy_cen=='SW200', policy_cen=='SW300', policy_cen=='SW400', policy_cen=='SW500'] ):
             if Location['Desal'] == 0:
                 uc_capac, desal_loc, desal_capac = self.location_track(policy_cen, t, uc_capac, desal_loc, desal_capac)
+            else:
+                infra_penalty += 10**12
             
-        if desal_capac[t]>0:
-            if any( [policy_rmc=='SW200', policy_rmc=='SW300', policy_rmc=='SW400', policy_rmc=='SW500'] ):
+        
+        if any( [policy_rmc=='SW200', policy_rmc=='SW300', policy_rmc=='SW400', policy_rmc=='SW500'] ):
+            if desal_capac[t]>0:
                 desal_capac[t+1:H] = 0 #deactivate desal
                 desal_loc[t+1:H] = 0
+            else:
+                infra_penalty += 10**12
 
         if any( [policy_cen=='PR200', policy_cen=='PR300', policy_cen=='PR400', policy_cen=='PR500', policy_cen=='NPR100'] ):
             if Location['WWTP'] == 0:
                 uc_capac, wwtp_loc, wwtp_capac = self.location_track(policy_cen, t, uc_capac, wwtp_loc, wwtp_capac)
+            else:
+                infra_penalty += 10**12
                 
-        if wwtp_capac[t]>0:
-            if any( [policy_rmc=='PR200', policy_rmc=='PR300', policy_rmc=='PR400', policy_rmc=='PR500', policy_rmc=='NPR100'] ):
+        
+        if any( [policy_rmc=='PR200', policy_rmc=='PR300', policy_rmc=='PR400', policy_rmc=='PR500', policy_rmc=='NPR100'] ):
+            if wwtp_capac[t]>0:
                 wwtp_capac[t+1:H] = 0 #deactivate 
                 wwtp_loc[t+1:H] = 0
+            else:
+                infra_penalty += 10**12
                 
         # decentralized decisions        
         if any( [policy_dec=='PR50', policy_dec=='NPR20'] ):
@@ -256,9 +267,12 @@ class SB(object):
             elif Location['L7'] == 0:
                 uc_capac, l7_loc, l7_capac = self.location_track(policy_dec, t, uc_capac, l7_loc, l7_capac)
                 #count = 0
+            else:
+                infra_penalty += 10**12
 
-        if l1_loc[t]>0: #at least one distributed plant
-            if any( [policy_rmd=='PR50', policy_rmd=='NPR20'] ):
+        
+        if any( [policy_rmd=='PR50', policy_rmd=='NPR20'] ):
+            if l1_loc[t]>0: #at least one distributed plant
                 if l7_capac[t]>0:
                     l7_capac[t+1:H] = 0 
                     l7_loc[t+1:H] = 0
@@ -280,6 +294,8 @@ class SB(object):
                 elif l1_capac[t]>0:
                     l1_capac[t+1:H] = 0 
                     l1_loc[t+1:H] = 0
+            else:
+                infra_penalty += -1*10**12
         
         # curtailment decisions
         if any( [policy_con=='d5', policy_con=='d10', policy_con=='d15', policy_con=='d20'] ):
@@ -391,7 +407,7 @@ class SB(object):
 
         # Objective function is total costs + a penalty for deficit
         Jcost = surface_cost/self.Ny + curtailment_cost/self.Ny + opex/self.Ny + capex/self.Ny + dis_cost/self.Ny/10e6 
-        Jcost = Jcost + def_penalty
+        Jcost = Jcost + def_penalty + infra_penalty
         #J.append(Jcost)
 
         self.opex = opex
@@ -425,7 +441,6 @@ class SB(object):
         self.curtailment_cost = curtailment_cost
         self.count = count
         self.t = t + 1
-    
         return Jcost
 
 
