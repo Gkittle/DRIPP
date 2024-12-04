@@ -2,6 +2,9 @@ import numpy as np
 import random
 from src import SB
 import pandas as pd
+from cachuma_lake import Cachuma
+from gibraltar_lake import Gibraltar
+from swp_lake import SWP
 
 class MDP:
     
@@ -12,6 +15,35 @@ class MDP:
         #self.T = T
         #self.R = R
         self.TR = TR
+
+def compute_alloc(t, nc, y):
+        curr_y = int(np.floor(t/12)) - 1 #
+        y=y-1 
+        if (t%12)>=9: #if it's october or later
+            curr_y = curr_y + 1
+    
+        if any( [curr_y == -1, all( [curr_y == y, y == 0] ) ]): #initial months have full allocation
+            alloc = 8800
+            return alloc
+    
+        if curr_y<=y:
+            prev  = sum( np.ones(y-curr_y)*8800 )
+            alloc = ( prev + np.sum(nc[0:curr_y])  )/y
+            return alloc
+    
+        else:
+            if y == 0:
+                alloc = nc[curr_y]
+            else:
+                alloc = np.mean(nc[curr_y-y:curr_y])
+            return alloc
+
+def compute_deltas(t, sc, l):
+        if t<l:
+            delta = 0
+        else:
+            delta = min( 0, sc[t]  - sc[t-l]) 
+        return delta
 
 
 class EpsilonGreedyExploration:
@@ -190,8 +222,40 @@ policy = EpsilonGreedyExploration(epsilon)
 # Simulate
 k = 20  # Number of steps
 
-initial_state = state_numeration()
+gibraltar   = Gibraltar(opt_par.drought_type)
+cachuma     = Cachuma(opt_par.drought_type)
+swp         = SWP(opt_par.drought_type)
+mds   = np.loadtxt('data/Inflow_Individual_Scenarios/mission_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
+sri12 = np.loadtxt('data/Inflow_Individual_Scenarios/gibrSRI12_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
+sri36 = np.loadtxt('data/Inflow_Individual_Scenarios/gibrSRI36_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt') 
+
+ncs     = cachuma.inflow
+ngis    = gibraltar.inflow
+nswps   = swp.inflow
 
 randseed = 0
+random.seed(randseed)
+s = random.randint(0,len(list(ncs[:,0])))
+
+nc    = list( ncs[s,:] ) 
+ngi   = list( ngis[s,:] )
+nswp  = list( nswps[s,:] )   
+md    = list( mds[s,:] ) 
+sri12 = list( sri12[s,:] ) 
+sri36 = list( sri36[s,:] )
+sc    = [cachuma.s0]
+
+allocat12t   = compute_alloc(0, nc+nswp, 1)
+allocat36t   = compute_alloc(0, nc+nswp, 3)
+allocat60t   = compute_alloc(0, nc+nswp, 5)
+
+delta12t     = compute_deltas(0, sc, 12) #delta storage over 1 year
+delta36t     = compute_deltas(0, sc, 36)
+delta60t     = compute_deltas(0, sc, 60)
+
+sri12t       = sri12[0]
+sri36t       = sri36[0]
+
+initial_state = state_numeration(0,0,0)
 
 simulate(P, model, policy, k, initial_state, randseed)

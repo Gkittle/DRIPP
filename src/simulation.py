@@ -46,8 +46,8 @@ class SB(object):
         self.nom_cost_rs = 420 
 
         self.mds   = np.loadtxt('data/Inflow_Individual_Scenarios/mission_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
-        #self.sri12 = np.loadtxt('data/Inflow_Individual_Scenarios/gibrSRI12_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
-        #self.sri36 = np.loadtxt('data/Inflow_Individual_Scenarios/gibrSRI36_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
+        self.sri12 = np.loadtxt('data/Inflow_Individual_Scenarios/gibrSRI12_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
+        self.sri36 = np.loadtxt('data/Inflow_Individual_Scenarios/gibrSRI36_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
         #self.nsim  = 50 #originally 5, the number of rows in the inflow data you read in, the rows correspond with random scenarios of inflow
 
         actions = []
@@ -442,16 +442,16 @@ class SB(object):
         self.count = count
         self.t = t + 1
 
-        allocat12t   = self.compute_alloc(t, nc+nswp, 1)
-        allocat36t   = self.compute_alloc(t, nc+nswp, 3)
-        allocat60t   = self.compute_alloc(t, nc+nswp, 5)
+        allocat12t   = self.compute_alloc(t+1, nc+nswp, 1)
+        allocat36t   = self.compute_alloc(t+1, nc+nswp, 3)
+        allocat60t   = self.compute_alloc(t+1, nc+nswp, 5)
 
-        delta12t     = self.compute_deltas(t, sc, 12) #delta storage over 1 year
-        delta36t     = self.compute_deltas(t, sc, 36)
-        delta60t     = self.compute_deltas(t, sc, 60)
+        delta12t     = self.compute_deltas(t+1, sc, 12) #delta storage over 1 year
+        delta36t     = self.compute_deltas(t+1, sc, 36)
+        delta60t     = self.compute_deltas(t+1, sc, 60)
 
-        sri12t       = sri12[t]
-        sri36t       = sri36[t]
+        sri12t       = sri12[t+1]
+        sri36t       = sri36[t+1]
 
         return [Jcost,storage_t, sri12t, sri36t,allocat12t, allocat36t, allocat60t,delta12t, delta36t, delta60t, 
                 self.installed_capacity, self.uc_capac, self.reduction_amount]
