@@ -126,8 +126,8 @@ class SB(object):
         ngi   = list( ngis[s,:] )
         nswp  = list( nswps[s,:] )   
         md    = list( self.mds[s,:] ) 
-        #sri12 = list( self.sri12[s,:] ) 
-        #sri36 = list( self.sri36[s,:] )
+        sri12 = list( self.sri12[s,:] ) 
+        sri36 = list( self.sri36[s,:] )
         
         sc      = [self.cachuma.s0]
         sgi     = [self.gibraltar.s0]
@@ -170,7 +170,7 @@ class SB(object):
 
         # compute value of indicators at time t
 
-        #storage_t    = self.compute_stor(sc + sswp + sgi)
+        storage_t    = self.compute_stor(sc + sswp + sgi)
 
         #allocat12t   = self.compute_alloc(t, nc+nswp, 1)
         #allocat36t   = self.compute_alloc(t, nc+nswp, 3)
@@ -441,7 +441,20 @@ class SB(object):
         self.curtailment_cost = curtailment_cost
         self.count = count
         self.t = t + 1
-        return Jcost
+
+        allocat12t   = self.compute_alloc(t, nc+nswp, 1)
+        allocat36t   = self.compute_alloc(t, nc+nswp, 3)
+        allocat60t   = self.compute_alloc(t, nc+nswp, 5)
+
+        delta12t     = self.compute_deltas(t, sc, 12) #delta storage over 1 year
+        delta36t     = self.compute_deltas(t, sc, 36)
+        delta60t     = self.compute_deltas(t, sc, 60)
+
+        sri12t       = sri12[t]
+        sri36t       = sri36[t]
+
+        return [Jcost,storage_t, sri12t, sri36t,allocat12t, allocat36t, allocat60t,delta12t, delta36t, delta60t, 
+                self.installed_capacity, self.uc_capac, self.reduction_amount]
 
 
     
