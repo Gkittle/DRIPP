@@ -2,13 +2,13 @@ import numpy as np
 import random
 from src import SB
 import pandas as pd
-from cachuma_lake import Cachuma
-from gibraltar_lake import Gibraltar
-from swp_lake import SWP
+from src.cachuma_lake import Cachuma
+from src.gibraltar_lake import Gibraltar
+from src.swp_lake import SWP
 
 class MDP:
     
-    def __init__(self, gamma, state_space, action_space, T, R, TR):
+    def __init__(self, gamma, state_space, action_space, TR):
         self.gamma = gamma
         self.state_space = state_space
         self.action_space = action_space

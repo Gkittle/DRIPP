@@ -6,7 +6,7 @@ characteristics of the San Luis reservoir where Santa Barbara's SWP allocation
 is stored. 
 """
 
-from lake import Lake
+from src.lake import Lake
 import numpy as np
 
 class SWP(Lake):

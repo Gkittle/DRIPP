@@ -5,7 +5,7 @@ Cachuma class is a subclass of the Lake class and implements geomorphological
 characteristics of the Cachuma reservoir along with methods needed for its simulation. 
 """
 
-from lake import Lake
+from src.lake import Lake
 import numpy as np
 
 class Cachuma(Lake):

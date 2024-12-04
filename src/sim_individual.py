@@ -7,10 +7,10 @@ Created on Fri Oct 15 10:37:27 2021
 """
 
 import numpy as np
-from cachuma_lake import Cachuma
-from gibraltar_lake import Gibraltar
-from swp_lake import SWP
-from policy import *
+from src.cachuma_lake import Cachuma
+from src.gibraltar_lake import Gibraltar
+from src.swp_lake import SWP
+from src.policy import *
 import numpy.matlib as mat
 from scipy.stats import lognorm
 
