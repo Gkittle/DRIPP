@@ -105,8 +105,57 @@ class SB(object):
         self.sswp    = [self.swp.s0]
         
 
+    def reset(self):
+
+        self.portfolio   = []
+        self.distr_costs = []
+        self.max_swp_market = 275
+        self.market_cost  = 1500
+        self.curtailment_unitcost = 5998
+
+        H = self.H
+
+        self.opex     = np.zeros(H)
+        self.capex    = np.zeros(H)
+        self.installed_capacity = np.zeros(H)
+        self.reduction_amount = np.zeros(H) #curtailment measures
+        self.desal_capac  = np.zeros(H)
+        self.wwtp_capac   = np.zeros(H) # waste water treat plant for centralized P and NP reuse
+        self.l1_capac     = np.zeros(H) # location of decentralized P and NP
+        self.l2_capac     = np.zeros(H)
+        self.l3_capac     = np.zeros(H)
+        self.l4_capac     = np.zeros(H)
+        self.l5_capac     = np.zeros(H)
+        self.l6_capac     = np.zeros(H)
+        self.l7_capac     = np.zeros(H)
+
+        self.desal_loc    = np.zeros(H)
+        self.wwtp_loc     = np.zeros(H)
+        self.l1_loc       = np.zeros(H)
+        self.l2_loc       = np.zeros(H)
+        self.l3_loc       = np.zeros(H)
+        self.l4_loc       = np.zeros(H)
+        self.l5_loc       = np.zeros(H)
+        self.l6_loc       = np.zeros(H)
+        self.l7_loc       = np.zeros(H)
+
+        self.def_penalty       = 0
+        self.uc_capac          = np.zeros(H)
+        self.dis_cost          = 0
+        self.surface_cost      = 0
+        self.curtailment_cost  = 0
+        self.count             = 5
+        self.t                 = 0
+
+        self.sc      = [self.cachuma.s0]
+        self.sgi     = [self.gibraltar.s0]
+        self.sswp    = [self.swp.s0]
+
     def simulate(self, a, randseed):
         
+        if self.t >= self.H - 1:
+            self.reset()
+
         self.H  = self.gibraltar.H 
         H       = self.H
         self.Ny = H/self.T

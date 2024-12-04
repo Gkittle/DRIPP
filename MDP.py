@@ -245,7 +245,7 @@ epsilon = 0.1
 policy = EpsilonGreedyExploration(epsilon)
 
 # Simulate
-k = 20  # Number of steps
+k = 2400  # Number of steps
 
 gibraltar   = Gibraltar(opt_par.drought_type)
 cachuma     = Cachuma(opt_par.drought_type)
