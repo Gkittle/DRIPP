@@ -21,6 +21,7 @@ from src.swp_lake import SWP
 from src.policy import *
 import numpy.matlib as mat
 import random
+import sys
 
 
 class log_results:
@@ -98,6 +99,10 @@ class SB(object):
         self.curtailment_cost  = 0
         self.count             = 5
         self.t                 = 0
+
+        self.sc      = [self.cachuma.s0]
+        self.sgi     = [self.gibraltar.s0]
+        self.sswp    = [self.swp.s0]
         
 
     def simulate(self, a, randseed):
@@ -107,6 +112,7 @@ class SB(object):
         self.Ny = H/self.T
         t = self.t
 
+        sys.stdout.write(f"\n{t}\n")
 
         ncs     = self.cachuma.inflow
         ngis    = self.gibraltar.inflow
@@ -122,16 +128,16 @@ class SB(object):
         #sri12 = []
         #sri36 = []
 
+        sc = self.sc
+        sgi = self.sgi
+        sswp = self.sswp
+
         nc    = list( ncs[s,:] ) 
         ngi   = list( ngis[s,:] )
         nswp  = list( nswps[s,:] )   
         md    = list( self.mds[s,:] ) 
         sri12 = list( self.sri12[s,:] ) 
         sri36 = list( self.sri36[s,:] )
-        
-        sc      = [self.cachuma.s0]
-        sgi     = [self.gibraltar.s0]
-        sswp    = [self.swp.s0]
 
         opex = self.opex
         capex = self.capex
@@ -337,13 +343,13 @@ class SB(object):
             
         # mass balance of water reservoirs
         s_, r_c  = self.cachuma.integration(sc[t], uc, nc_, d)
-        sc.append(s_)
+        self.sc.append(s_)
 
         s_, r_gi  = self.gibraltar.integration(sgi[t], ugi, ngi[t], d)
-        sgi.append(s_)
+        self.sgi.append(s_)
 
         s_, r_swp  = self.swp.integration(sswp[t], uswp, nswp_, d)
-        sswp.append(s_)
+        self.sswp.append(s_)
         
         
         # calculation of deficit for penalty
@@ -436,6 +442,7 @@ class SB(object):
 
         self.def_penalty = def_penalty
         self.uc_capac = uc_capac
+        #sys.stdout.write(f"{uc_capac}")
         self.dis_cost = dis_cost
         self.surface_cost = surface_cost
         self.curtailment_cost = curtailment_cost
@@ -454,7 +461,7 @@ class SB(object):
         sri36t       = sri36[t+1]
 
         return [Jcost,storage_t, sri12t, sri36t,allocat12t, allocat36t, allocat60t,delta12t, delta36t, delta60t, 
-                self.installed_capacity, self.uc_capac, self.reduction_amount]
+                self.installed_capacity[t+1], self.uc_capac[t+1], self.reduction_amount[t+1]]
 
 
     
