@@ -461,8 +461,8 @@ class SB(object):
         capex, opex = self.tech_cost(desal_capac, wwtp_capac, l1_capac, l2_capac, l3_capac, l4_capac, l5_capac, l6_capac, l7_capac)
 
         # Objective function is total costs + a penalty for deficit
-        Jcost = surface_cost/self.Ny + curtailment_cost/self.Ny + opex/self.Ny + capex/self.Ny + dis_cost/self.Ny/10e6 
-        Jcost = Jcost + def_penalty + infra_penalty
+        Jcost1 = surface_cost/self.Ny + curtailment_cost/self.Ny + opex/self.Ny + capex/self.Ny + dis_cost/self.Ny/10e6 
+        Jcost = Jcost1 + def_penalty + infra_penalty
         #J.append(Jcost)
 
         self.opex = opex
@@ -509,7 +509,7 @@ class SB(object):
         sri12t       = sri12[t+1]
         sri36t       = sri36[t+1]
 
-        return [Jcost,storage_t, sri12t, sri36t,allocat12t, allocat36t, allocat60t,delta12t, delta36t, delta60t, 
+        return [Jcost,Jcost1,storage_t, sri12t, sri36t,allocat12t, allocat36t, allocat60t,delta12t, delta36t, delta60t, 
                 self.installed_capacity[t+1], self.uc_capac[t+1], self.reduction_amount[t+1]]
 
 

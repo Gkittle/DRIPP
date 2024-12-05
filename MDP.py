@@ -71,11 +71,12 @@ class EpsilonGreedyExploration:
 
 class QLearning:
     
-    def __init__(self, state_space, action_space, gamma, Q, alpha):
+    def __init__(self, state_space, action_space, gamma, Q, Q_mask, alpha):
         self.state_space = state_space
         self.action_space = action_space
         self.gamma = gamma
         self.Q = Q
+        self.Q_mask = Q_mask
         self.alpha = alpha
 
     def lookahead(self, s, a):
@@ -85,6 +86,7 @@ class QLearning:
 
     def update(self, s, a, r, s_prime):
         max_next_q = np.max(self.Q[int(s_prime), :])
+        self.Q_mask.append([int(s),int(a)])
         self.Q[int(s), int(a)] += self.alpha * (r + self.gamma * max_next_q - self.Q[int(s), int(a)])
 
 
@@ -96,7 +98,7 @@ def simulate(P, model, policy, h, s, randseed):
         #s_prime, r = P.TR(s, a)
         sim_out = P.TR(a,randseed)
         r = sim_out[0]
-        s_prime = state_numeration(sim_out[1:])
+        s_prime = state_numeration(sim_out[2:])
         # Update the model
         model.update(s, a, r, s_prime)
         # Move to the next state
@@ -225,20 +227,15 @@ action_space = range(4500)
 gamma = 0.9
 
 Sim = lambda a, randseed: modelSB.simulate(a, randseed) 
-#return [Jcost,ss, sri12t, sri36t,allocat12t, allocat36t, allocat60t,delta12t, delta36t, delta60t, installed_capacity, uc_capac, reduction_amount]
-
-#T = lambda s, a, randseed: state_numeration(Sim(s,a,randseed)[1:])
-
-#TR = lambda s, a, randseed: (T(s,a,randseed), Sim[s,a,randseed][0])
+#return [Jcost, Jcost1, ss, sri12t, sri36t,allocat12t, allocat36t, allocat60t,delta12t, delta36t, delta60t, installed_capacity, uc_capac, reduction_amount]
 
 P = MDP(gamma, state_space, action_space, Sim)
 
 # Initialize Q-learning model
-with tempfile.NamedTemporaryFile() as ntf:
-    temp_name = ntf.name
-    Q = np.memmap(temp_name, dtype='float32',mode='w+',shape=(len(state_space),len(action_space)))
+Q = np.memmap(tempfile.NamedTemporaryFile().name, dtype='float32',mode='w+',shape=(len(state_space),len(action_space)))
+Q_mask = []
 alpha = 0.2
-model = QLearning(state_space, action_space, gamma, Q, alpha)
+model = QLearning(state_space, action_space, gamma, Q, Q_mask, alpha)
 
 # Initialize policy
 epsilon = 0.1
@@ -288,3 +285,27 @@ sri36t       = sri36[0]
 initial_state = state_numeration([storage_t, sri12t, sri36t, allocat12t, allocat36t, allocat60t, delta12t, delta36t, delta60t, 0, 0, 0])
 #sys.stdout.write(f"\n{[storage_t, sri12t, sri36t, allocat12t, allocat36t, allocat60t, delta12t, delta36t, delta60t, 0, 0, 0]}\n")
 simulate(P, model, policy, k, initial_state, randseed)
+
+final_actions = []
+final_states = []
+s = initial_state
+final_states.append(s)
+for _ in range(1199):
+    a_i = 6 #unlikely building a NPR plant at time 0 will be selected
+    for val in Q_mask:
+        if val[0] == s:
+            a_n = val[1]
+            if Q[int(s),int(a_n)] >= Q[int(s), int(a_i)]:
+                a_i = a_n
+
+    a = a_i
+    sim_out = P.TR(a,randseed)
+    r = sim_out[0]
+    s_prime = state_numeration(sim_out[2:])
+    s = s_prime
+    final_actions.append(a)
+    final_states.append(s)
+
+d = {'states': final_states[:-1], 'actions': final_actions}
+df = pd.DataFrame(data=d)
+df.to_csv('Results_2yrs.csv', index = False)
