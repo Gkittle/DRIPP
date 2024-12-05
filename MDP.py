@@ -242,7 +242,7 @@ epsilon = 0.1
 policy = EpsilonGreedyExploration(epsilon)
 
 # Simulate
-k = 2400  # Number of steps
+k = 6000  # Number of steps
 
 gibraltar   = Gibraltar(opt_par.drought_type)
 cachuma     = Cachuma(opt_par.drought_type)
@@ -303,9 +303,17 @@ for _ in range(1199):
     r = sim_out[0]
     s_prime = state_numeration(sim_out[2:])
     s = s_prime
-    final_actions.append(a)
+    action_decode = []
+    for i in ['nothing','SW200','SW300','SW400','SW500','PR200','PR300','PR400','PR500','NPR100']:
+        for j in ['nothing','SW200','SW300','SW400','SW500','PR200','PR300','PR400','PR500','NPR100']:
+            for k in ['nothing','NPR20','PR50']:
+                for l in ['nothing','NPR20','PR50']:
+                    for m in ['nothing','d5','d10','d15','d20']:
+                        action_decode.append([i,j,k,l,m])
+    policy_cen, policy_rmc, policy_dec, policy_rmd, policy_con = action_decode[a]
+    final_actions.append([policy_cen, policy_rmc, policy_dec, policy_rmd, policy_con])
     final_states.append(s)
 
 d = {'states': final_states[:-1], 'actions': final_actions}
 df = pd.DataFrame(data=d)
-df.to_csv('Results_2yrs.csv', index = False)
+df.to_csv('Results_5yrs.csv', index = False)

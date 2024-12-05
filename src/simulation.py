@@ -154,6 +154,7 @@ class SB(object):
     def simulate(self, a, randseed):
         
         if self.t >= self.H - 1:
+            sys.stdout.write('\nsim\n')
             self.reset()
 
         self.H  = self.gibraltar.H 
@@ -161,7 +162,7 @@ class SB(object):
         self.Ny = H/self.T
         t = self.t
 
-        sys.stdout.write(f"\n{t}\n")
+        #sys.stdout.write(f"\n{t}\n")
 
         ncs     = self.cachuma.inflow
         ngis    = self.gibraltar.inflow
@@ -350,7 +351,7 @@ class SB(object):
                     l1_capac[t+1:H] = 0 
                     l1_loc[t+1:H] = 0
             else:
-                infra_penalty += -1*10**12
+                infra_penalty += 10**12
         
         # curtailment decisions
         if any( [policy_con=='d5', policy_con=='d10', policy_con=='d15', policy_con=='d20'] ):
@@ -411,7 +412,8 @@ class SB(object):
         market = min( max_market, deficit ) 
         
         if t>10*12:
-            def_penalty += deficit - market
+            #def_penalty += deficit - market
+            def_penalty += 10**12
         
 ############## Calculation of costs
         surface_cost += self.compute_sf_stepcost(r_c, r_gi, md[t], r_swp, market)/10e6
