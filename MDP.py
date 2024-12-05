@@ -155,7 +155,7 @@ def state_numeration(rounded):
         if (rounded[11] >= val):
             if(rounded[11] <= val + step6):
                 rounded[11] = i
-    """
+    
     int1 = (35000/step1)*((6/step2)**2)*((12100/step3)**3)*((40000/step4)**3)*((800/step5)**2)*(25/step6)
     int2 = (35000/step1)*((6/step2)**2)*((12100/step3)**3)*((40000/step4)**3)*((800/step5)**2)
     int3 = (35000/step1)*((6/step2)**2)*((12100/step3)**3)*((40000/step4)**3)*((800/step5)**1)
@@ -168,9 +168,10 @@ def state_numeration(rounded):
     int10 = (35000/step1)*((6/step2)**2)
     int11 = (35000/step1)*((6/step2)**1)
     int12 = (35000/step1)
+    
+    num = (int1*rounded[0] + int2*rounded[1] + int3*rounded[2] + int4*rounded[3] + int5*rounded[4] + int6*rounded[5] + 
+           int7*rounded[6] + int8*rounded[7] + int9*rounded[8] + int10*rounded[9] + int11*rounded[10] + int12*rounded[11])
     """
-    #num = (int1*rounded[0] + int2*rounded[1] + int3*rounded[2] + int4*rounded[3] + int5*rounded[4] + int6*rounded[5] + 
-    #       int7*rounded[6] + int8*rounded[7] + int9*rounded[8] + int10*rounded[9] + int11*rounded[10] + int12*rounded[11])
     int1 = (35000/step1)*((6/step2)**1)*((12100/step3)**1)*((40000/step4)**1)*((800/step5)**2)*(25/step6)
     int2 = (35000/step1)*((6/step2)**1)*((12100/step3)**1)*((40000/step4)**1)*((800/step5)**2)
     int3 = (35000/step1)*((6/step2)**1)*((12100/step3)**1)*((40000/step4)**1)*((800/step5)**1)
@@ -179,6 +180,7 @@ def state_numeration(rounded):
     int6 = (35000/step1)*((6/step2)**1)
     int7 = (35000/step1)
     num = (int1*rounded[0] + int2*rounded[1] + int3*rounded[3] + int4*rounded[6] + int5*rounded[9] + int6*rounded[10] + int7*rounded[11])
+    """
     return num
 
 # set optimization parameters
@@ -221,8 +223,8 @@ modelSB = SB(opt_par, action_name, capacity, om, cx, t_depl, lifetime)
 
 
 # Initialize MDP and parameters
-#state_space = range(35*6*6*11*11*11*40*40*40*8*8*6)
-state_space = range(35*6*11*40*8*8*6)
+state_space = range(35*6*6*11*11*11*40*40*40*8*8*6)
+#state_space = range(35*6*11*40*8*8*6)
 action_space = range(4500)
 gamma = 0.9
 
@@ -232,7 +234,8 @@ Sim = lambda a, randseed: modelSB.simulate(a, randseed)
 P = MDP(gamma, state_space, action_space, Sim)
 
 # Initialize Q-learning model
-Q = np.memmap(tempfile.NamedTemporaryFile().name, dtype='float32',mode='w+',shape=(len(state_space),len(action_space)))
+#Q = np.memmap(tempfile.NamedTemporaryFile().name, dtype='float32',mode='w+',shape=(len(state_space),len(action_space)))
+Q = np.memmap(tempfile.NamedTemporaryFile().name, dtype='float32',mode='w+',shape=((350*6*110*400*80*80*6),len(action_space)))
 Q_mask = []
 alpha = 0.2
 model = QLearning(state_space, action_space, gamma, Q, Q_mask, alpha)
