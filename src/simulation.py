@@ -103,7 +103,11 @@ class SB(object):
         self.sc      = [self.cachuma.s0]
         self.sgi     = [self.gibraltar.s0]
         self.sswp    = [self.swp.s0]
+        self.simulation_counter = 0
         
+        self.decen_bool = 0
+        self.desal_bool = 0
+        self.wwtp_bool = 0
 
     def reset(self):
 
@@ -151,10 +155,15 @@ class SB(object):
         self.sgi     = [self.gibraltar.s0]
         self.sswp    = [self.swp.s0]
 
+        self.decen_bool = 0
+        self.desal_bool = 0
+        self.wwtp_bool = 0
+
     def simulate(self, a, randseed):
         
         if self.t >= self.H - 1:
-            sys.stdout.write('\nsim\n')
+            self.simulation_counter += 1
+            sys.stdout.write(f'\n{self.simulation_counter}\n')
             self.reset()
 
         self.H  = self.gibraltar.H 
@@ -257,6 +266,7 @@ class SB(object):
                         for m in ['nothing','d5','d10','d15','d20']:
                             action_decode.append([i,j,k,l,m])
         policy_cen, policy_rmc, policy_dec, policy_rmd, policy_con = action_decode[a]
+        #sys.stdout.write(f"\n{[policy_cen, policy_rmc, policy_dec, policy_rmd, policy_con]}\n")
 
         Location['Desal']  = desal_loc[t]
         Location['WWTP']   = wwtp_loc[t]
@@ -276,6 +286,7 @@ class SB(object):
             if Location['Desal'] == 0:
                 uc_capac, desal_loc, desal_capac = self.location_track(policy_cen, t, uc_capac, desal_loc, desal_capac)
             else:
+                self.desal_bool = 1
                 infra_penalty += 10**12
             
         
@@ -290,6 +301,7 @@ class SB(object):
             if Location['WWTP'] == 0:
                 uc_capac, wwtp_loc, wwtp_capac = self.location_track(policy_cen, t, uc_capac, wwtp_loc, wwtp_capac)
             else:
+                self.wwtp_bool = 1
                 infra_penalty += 10**12
                 
         
@@ -324,6 +336,7 @@ class SB(object):
                 uc_capac, l7_loc, l7_capac = self.location_track(policy_dec, t, uc_capac, l7_loc, l7_capac)
                 #count = 0
             else:
+                self.decen_bool = 1
                 infra_penalty += 10**12
 
         
@@ -413,7 +426,7 @@ class SB(object):
         
         if t>10*12:
             #def_penalty += deficit - market
-            def_penalty += 10**12
+            def_penalty += deficit*(10**12)
         
 ############## Calculation of costs
         surface_cost += self.compute_sf_stepcost(r_c, r_gi, md[t], r_swp, market)/10e6
@@ -510,9 +523,17 @@ class SB(object):
 
         sri12t       = sri12[t+1]
         sri36t       = sri36[t+1]
+        #if deficit != 0:
+        #    sys.stdout.write("Deficit")
+        #    sys.stdout.write(f"\n{deficit}\n")
+        #    sys.stdout.write(f"\n{def_penalty}\n")
+        #if infra_penalty != 0:
+        #    sys.stdout.write("Infra")
+        #    sys.stdout.write(f"\n{infra_penalty}\n")
 
-        return [Jcost,Jcost1,storage_t, sri12t, sri36t,allocat12t, allocat36t, allocat60t,delta12t, delta36t, delta60t, 
-                self.installed_capacity[t+1], self.uc_capac[t+1], self.reduction_amount[t+1]]
+        return [-1*Jcost,-1*Jcost1, storage_t, sri12t, sri36t,allocat12t, allocat36t, allocat60t,delta12t, delta36t, delta60t, 
+                sum([desal_capac[t+1], wwtp_capac[t+1], l1_capac[t+1], l2_capac[t+1], l3_capac[t+1], l4_capac[t+1], l5_capac[t+1], l6_capac[t+1], l7_capac[t+1]]),
+                 self.uc_capac[t+1], self.reduction_amount[t+1], self.decen_bool, self.desal_bool, self.wwtp_bool]
 
 
     

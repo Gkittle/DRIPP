@@ -7,6 +7,7 @@ from src.gibraltar_lake import Gibraltar
 from src.swp_lake import SWP
 import sys
 import tempfile
+import time
 
 class MDP:
     
@@ -61,12 +62,21 @@ class EpsilonGreedyExploration:
         self.epsilon = epsilon
 
     def __call__(self, model, s):
-        
+        random.seed(int(1000*time.time())% 2**32)
         A = model.action_space
-        if random.random() < self.epsilon:
+        r = random.random()
+        #sys.stdout.write(f"{r}")
+        if r < self.epsilon:
             return random.choice(A)
         else:
-            return np.argmax([model.lookahead(s, a) for a in A])
+            for _ in range(1199):
+                a_i = 0
+                for val in Q_mask:
+                    if val[0] == s:
+                        a_n = val[1]
+                        if Q[int(s),int(a_n)] >= Q[int(s), int(a_i)]:
+                            a_i = a_n
+            return a_i
 
 
 class QLearning:
@@ -91,7 +101,10 @@ class QLearning:
 
 
 def simulate(P, model, policy, h, s, randseed):
-    for _ in range(h):
+    cost = 0
+    reward = 0
+    for val in range(h):
+        #sys.stdout.write(f"\n{val}\n")
         # Select action using the policy
         a = policy(model, s)
         # Sample transition and reward
@@ -103,15 +116,18 @@ def simulate(P, model, policy, h, s, randseed):
         model.update(s, a, r, s_prime)
         # Move to the next state
         s = s_prime
+        cost += sim_out[1]
+        reward += r
+    return reward,cost
 
 def state_numeration(rounded):
-    #rounded = [ss,sri1,sri3,al1,al3,al5,del1,del3,del5,in_cap,un_cap,curt]
+    #rounded = [ss,sri1,sri3,al1,al3,al5,del1,del3,del5,in_cap,un_cap,curt,desal_bool,wwtp_bool,decen_bool]
     #sys.stdout.write(f"\n{rounded}\n")
     step1 = 3500
     step2 = 2
     step3 = 1100
     step4 = 1000
-    step5 = 100
+    step5 = 50
     step6 = 5
     for val,i in zip(np.arange(0,35001,step1), range(int(35000/step1))):
         if (rounded[0] >= val):
@@ -155,7 +171,7 @@ def state_numeration(rounded):
         if (rounded[11] >= val):
             if(rounded[11] <= val + step6):
                 rounded[11] = i
-    
+    """
     int1 = (35000/step1)*((6/step2)**2)*((12100/step3)**3)*((40000/step4)**3)*((800/step5)**2)*(25/step6)
     int2 = (35000/step1)*((6/step2)**2)*((12100/step3)**3)*((40000/step4)**3)*((800/step5)**2)
     int3 = (35000/step1)*((6/step2)**2)*((12100/step3)**3)*((40000/step4)**3)*((800/step5)**1)
@@ -168,9 +184,9 @@ def state_numeration(rounded):
     int10 = (35000/step1)*((6/step2)**2)
     int11 = (35000/step1)*((6/step2)**1)
     int12 = (35000/step1)
-    
-    num = (int1*rounded[0] + int2*rounded[1] + int3*rounded[2] + int4*rounded[3] + int5*rounded[4] + int6*rounded[5] + 
-           int7*rounded[6] + int8*rounded[7] + int9*rounded[8] + int10*rounded[9] + int11*rounded[10] + int12*rounded[11])
+    """
+    #num = (int1*rounded[0] + int2*rounded[1] + int3*rounded[2] + int4*rounded[3] + int5*rounded[4] + int6*rounded[5] + 
+    #       int7*rounded[6] + int8*rounded[7] + int9*rounded[8] + int10*rounded[9] + int11*rounded[10] + int12*rounded[11])
     """
     int1 = (35000/step1)*((6/step2)**1)*((12100/step3)**1)*((40000/step4)**1)*((800/step5)**2)*(25/step6)
     int2 = (35000/step1)*((6/step2)**1)*((12100/step3)**1)*((40000/step4)**1)*((800/step5)**2)
@@ -179,8 +195,20 @@ def state_numeration(rounded):
     int5 = (35000/step1)*((6/step2)**1)*((12100/step3)**1)
     int6 = (35000/step1)*((6/step2)**1)
     int7 = (35000/step1)
-    num = (int1*rounded[0] + int2*rounded[1] + int3*rounded[3] + int4*rounded[6] + int5*rounded[9] + int6*rounded[10] + int7*rounded[11])
     """
+    int1 = (2**3)*(35000/step1)*((12100/step3)**1)*((40000/step4)**1)*((800/step5)**2)*(25/step6)
+    int3 = (2**3)*(35000/step1)*((12100/step3)**1)*((40000/step4)**1)*((800/step5)**2)
+    int4 = (2**3)*(35000/step1)*((12100/step3)**1)*((40000/step4)**1)*((800/step5)**1)
+    int5 = (2**3)*(35000/step1)*((12100/step3)**1)*((40000/step4)**1)
+    int6 = (2**3)*(35000/step1)*((12100/step3)**1)
+    int7 = (2**3)*(35000/step1)
+    int8 = 2**3
+    int9 = 2**2
+    int10 = 2
+    num = (int1*rounded[0] + int3*rounded[3] + int4*rounded[6] + int5*rounded[9] + int6*rounded[10] + int7*rounded[11] + int8*rounded[12]
+           + int9*rounded[13] + int10*rounded[14])
+    #sys.stdout.write(f"\n{rounded}\n")
+    #sys.stdout.write(f"{num}\n")
     return num
 
 # set optimization parameters
@@ -223,8 +251,8 @@ modelSB = SB(opt_par, action_name, capacity, om, cx, t_depl, lifetime)
 
 
 # Initialize MDP and parameters
-state_space = range(35*6*6*11*11*11*40*40*40*8*8*6)
-#state_space = range(35*6*11*40*8*8*6)
+#state_space = range(35*6*6*11*11*11*40*40*40*8*8*6)
+state_space = range(35*11*40*16*16*6*2*2*2)
 action_space = range(4500)
 gamma = 0.9
 
@@ -234,18 +262,19 @@ Sim = lambda a, randseed: modelSB.simulate(a, randseed)
 P = MDP(gamma, state_space, action_space, Sim)
 
 # Initialize Q-learning model
-#Q = np.memmap(tempfile.NamedTemporaryFile().name, dtype='float32',mode='w+',shape=(len(state_space),len(action_space)))
-Q = np.memmap(tempfile.NamedTemporaryFile().name, dtype='float32',mode='w+',shape=((350*6*110*400*80*80*6),len(action_space)))
+Q = np.memmap(tempfile.NamedTemporaryFile().name, dtype='float32',mode='w+',shape=(len(state_space),len(action_space)))
+#Q = np.memmap(tempfile.NamedTemporaryFile().name, dtype='float32',mode='w+',shape=((350*6*110*400*80*80*6),len(action_space)))
 Q_mask = []
+Q_infeasible = []
 alpha = 0.2
 model = QLearning(state_space, action_space, gamma, Q, Q_mask, alpha)
 
 # Initialize policy
-epsilon = 0.1
+epsilon = 0.7
 policy = EpsilonGreedyExploration(epsilon)
 
 # Simulate
-k = 6000  # Number of steps
+k = 2*1198  # Number of steps
 
 gibraltar   = Gibraltar(opt_par.drought_type)
 cachuma     = Cachuma(opt_par.drought_type)
@@ -285,16 +314,20 @@ delta60t     = compute_deltas(0, sc, 60)
 sri12t       = sri12[0]
 sri36t       = sri36[0]
 
-initial_state = state_numeration([storage_t, sri12t, sri36t, allocat12t, allocat36t, allocat60t, delta12t, delta36t, delta60t, 0, 0, 0])
+initial_state = state_numeration([storage_t, sri12t, sri36t, allocat12t, allocat36t, allocat60t, delta12t, delta36t, delta60t, 0, 0, 0, 0, 0, 0])
 #sys.stdout.write(f"\n{[storage_t, sri12t, sri36t, allocat12t, allocat36t, allocat60t, delta12t, delta36t, delta60t, 0, 0, 0]}\n")
-simulate(P, model, policy, k, initial_state, randseed)
+reward, cost = simulate(P, model, policy, k, initial_state, randseed)
+sys.stdout.write(f"{reward}")
+sys.stdout.write(f"{cost}")
 
 final_actions = []
 final_states = []
 s = initial_state
 final_states.append(s)
+final_reward = 0
+final_cost = 0
 for _ in range(1199):
-    a_i = 6 #unlikely building a NPR plant at time 0 will be selected
+    a_i = 540 #random state
     for val in Q_mask:
         if val[0] == s:
             a_n = val[1]
@@ -304,6 +337,8 @@ for _ in range(1199):
     a = a_i
     sim_out = P.TR(a,randseed)
     r = sim_out[0]
+    final_reward += r
+    final_cost += sim_out[1]
     s_prime = state_numeration(sim_out[2:])
     s = s_prime
     action_decode = []
@@ -316,7 +351,9 @@ for _ in range(1199):
     policy_cen, policy_rmc, policy_dec, policy_rmd, policy_con = action_decode[a]
     final_actions.append([policy_cen, policy_rmc, policy_dec, policy_rmd, policy_con])
     final_states.append(s)
-
+sys.stdout.write("\nFinal\n")
+sys.stdout.write(f"\n{final_reward}\n")
+sys.stdout.write(f"\n{final_cost}\n")
 d = {'states': final_states[:-1], 'actions': final_actions}
 df = pd.DataFrame(data=d)
-df.to_csv('Results_5yrs.csv', index = False)
+df.to_csv('Results.csv', index = False)
