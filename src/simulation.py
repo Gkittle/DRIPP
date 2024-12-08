@@ -533,7 +533,7 @@ class SB(object):
 
         return [-1*Jcost,-1*Jcost1, storage_t, sri12t, sri36t,allocat12t, allocat36t, allocat60t,delta12t, delta36t, delta60t, 
                 sum([desal_capac[t+1], wwtp_capac[t+1], l1_capac[t+1], l2_capac[t+1], l3_capac[t+1], l4_capac[t+1], l5_capac[t+1], l6_capac[t+1], l7_capac[t+1]]),
-                 self.uc_capac[t+1], self.reduction_amount[t+1], self.decen_bool, self.desal_bool, self.wwtp_bool]
+                 self.uc_capac[t+1], self.reduction_amount[t+1], self.desal_bool, self.wwtp_bool, self.decen_bool]
 
 
     
