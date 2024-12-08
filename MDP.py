@@ -126,8 +126,8 @@ def state_numeration(rounded):
     step1 = 3500
     step2 = 2
     step3 = 1100
-    step4 = 1000
-    step5 = 50
+    step4 = 10000
+    step5 = 100
     step6 = 5
     for val,i in zip(np.arange(0,35001,step1), range(int(35000/step1))):
         if (rounded[0] >= val):
@@ -196,19 +196,25 @@ def state_numeration(rounded):
     int6 = (35000/step1)*((6/step2)**1)
     int7 = (35000/step1)
     """
-    int1 = (2**3)*(35000/step1)*((12100/step3)**1)*((40000/step4)**1)*((800/step5)**2)*(25/step6)
-    int3 = (2**3)*(35000/step1)*((12100/step3)**1)*((40000/step4)**1)*((800/step5)**2)
-    int4 = (2**3)*(35000/step1)*((12100/step3)**1)*((40000/step4)**1)*((800/step5)**1)
-    int5 = (2**3)*(35000/step1)*((12100/step3)**1)*((40000/step4)**1)
-    int6 = (2**3)*(35000/step1)*((12100/step3)**1)
-    int7 = (2**3)*(35000/step1)
-    int8 = 2**3
-    int9 = 2**2
-    int10 = 2
-    num = (int1*rounded[0] + int3*rounded[3] + int4*rounded[6] + int5*rounded[9] + int6*rounded[10] + int7*rounded[11] + int8*rounded[12]
-           + int9*rounded[13] + int10*rounded[14])
+    #int1 = (2**3)*(35000/step1)*((12100/step3)**1)*((40000/step4)**1)*((800/step5)**2)*(25/step6)
+    #int3 = (2**3)*(35000/step1)*((12100/step3)**1)*((40000/step4)**1)*((800/step5)**2)
+    #int4 = (2**3)*(35000/step1)*((12100/step3)**1)*((40000/step4)**1)*((800/step5)**1)
+    #int5 = (2**3)*(35000/step1)*((12100/step3)**1)*((40000/step4)**1)
+    #int6 = (2**3)*(35000/step1)*((12100/step3)**1)
+    #int7 = (2**3)*(35000/step1)
+    #int8 = 2**3
+    #int9 = 2**2
+    #int10 = 2
+    #num = (int1*rounded[0] + int3*rounded[3] + int4*rounded[6] + int5*rounded[9] + int6*rounded[10] + int7*rounded[11] + int8*rounded[12]
+    #       + int9*rounded[13] + int10*rounded[14])
     #sys.stdout.write(f"\n{rounded}\n")
     #sys.stdout.write(f"{num}\n")
+    int1 = 4*6*2*2*2
+    int2 = 6*2*2*2
+    int3 = 2*2*2
+    int4 = 2*2
+    int5 = 2
+    num = (int1*(rounded[3] - 1) + int2*(rounded[6] - 1) + int3*(rounded[11] - 1) + int4*(rounded[12] - 1) + int5*(rounded[13] - 1) + rounded[14])
     return num
 
 # set optimization parameters
@@ -252,7 +258,8 @@ modelSB = SB(opt_par, action_name, capacity, om, cx, t_depl, lifetime)
 
 # Initialize MDP and parameters
 #state_space = range(35*6*6*11*11*11*40*40*40*8*8*6)
-state_space = range(35*11*40*16*16*6*2*2*2)
+#state_space = range(35*11*40*16*16*6*2*2*2)
+state_space = range(11*4*6*2*2*2)
 action_space = range(4500)
 gamma = 0.9
 
