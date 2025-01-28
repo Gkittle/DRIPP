@@ -17,7 +17,7 @@ sys.path.append('src')
 sys.path.append('ptreeopt')
 from src import SB, SBsim
 from src import *
-from ptreeopt import PTreeOpt, MultiprocessingExecutor
+from ptreeopt import PTreeOpt, MultiprocessingExecutor, MPIExecutor
 import logging
 import csv
 import pickle
@@ -109,7 +109,7 @@ if __name__ == '__main__':
 
 ##### set following condition to 1 for full scale optimization on computing cluster
     if 0:
-        with MultiprocessingExecutor(processes=opt_par.cores) as executor:
+        with MPIExecutor(processes=opt_par.cores) as executor:
             best_solution, best_score, snapshots = algorithm.run(max_nfe=300000, #max_nfe in full scale is 300,000
                                                          log_frequency=100,
                                                          snapshot_frequency=100,
@@ -142,7 +142,7 @@ if __name__ == '__main__':
     #plt.style.use('seaborn-darkgrid')
 
     fig, axs = plt.subplots(3)
-    fig.suptitle('For demo purpose only \n These results are not converged')
+    #fig.suptitle('For demo purpose only \n These results are not converged')
     
     axs[0].fill_between(range(1200), log.sri36, where = (np.array(log.sri36)>0), color = '#73A5C6') 
     axs[0].set_ylabel('SRI [-]')
