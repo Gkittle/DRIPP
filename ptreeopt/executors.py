@@ -13,12 +13,12 @@ import threading
 
 import numpy as np
 
-from mpi4py.futures import MPIPoolExecutor
+#from mpi4py.futures import MPIPoolExecutor
 
-#try:
-#    from mpi4py.futures import MPIPoolExecutor
-#except ImportError as e:
-#    pass
+try:
+    from mpi4py.futures import MPIPoolExecutor
+except ImportError as e:
+    pass
     
 class BaseExecutor(object):
     '''Base class for executor classes
