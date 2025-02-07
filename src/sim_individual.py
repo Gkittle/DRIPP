@@ -129,6 +129,7 @@ class SBsim(object):
         sc      = [self.cachuma.s0]
         sgi     = [self.gibraltar.s0]
         sswp    = [self.swp.s0]
+        ss = []
 
         rc      = [-999]
         rgi     = [-999]
@@ -178,6 +179,7 @@ class SBsim(object):
         for t in range(H):
     ############ compute value of indicators at time T 
             storage_t    = self.compute_stor(sc + sswp + sgi)
+            ss.append(storage_t)
     
             allocat12t   = self.compute_alloc(t, nc+nswp, 1)
             allocat36t   = self.compute_alloc(t, nc+nswp, 3)
@@ -311,7 +313,6 @@ class SBsim(object):
             d = max( 0, dem - installed_capacity[t] - md[t] )
 
             SS = sc[-1] + sgi[-1] + sswp[-1]
-            
             uc  = sc[-1]/SS #0.6
             ugi = sgi[-1]/SS  #0.3
             uswp = sswp[-1]/SS
@@ -417,6 +418,7 @@ class SBsim(object):
         log.sri12 = sri12
         log.sri36 = sri36
         log.sc = sc[:-1]
+        log.ss = ss
         log.reduction_magn = current_curtail
         log.residualdeficit = max(deficit_annual)
         log.J = Jcost
