@@ -420,6 +420,7 @@ class SBsim(object):
         log.sc = sc[:-1]
         log.ss = ss
         log.reduction_magn = current_curtail
+        log.reduction_perc = reduction_amount
         log.residualdeficit = max(deficit_annual)
         log.J = Jcost
         log.Cost  = Cost
