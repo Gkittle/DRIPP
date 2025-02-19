@@ -29,7 +29,7 @@ import pandas as pd
 # set optimization parameters
 class OptimizationParameters(object):
     def __init__(self):
-        self.cores    = 36 # this value is used only in the full scale optimization
+        self.cores    = 32 # this value is used only in the full scale optimization
         self.nseeds   = 1
         self.nobjs    = 1
         self.drought_type = [87, 0.83, 2] # set drought type here [Persistence (months), Intensity (unitless), Frequency (droughts/100 years)]
@@ -99,6 +99,7 @@ if __name__ == '__main__':
     #args = parser.parse_args()
     #seed = int(args.process)
     #np.random.rand(seed)
+    np.random.rand(seed)
 
 
     logging.basicConfig(level=logging.INFO,
@@ -109,7 +110,7 @@ if __name__ == '__main__':
 
 ##### set following condition to 1 for full scale optimization on computing cluster
     if 0:
-        with MPIExecutor(processes=opt_par.cores) as executor:
+        with MultiprocessingExecutor(processes=opt_par.cores) as executor:
             best_solution, best_score, snapshots = algorithm.run(max_nfe=300000, #max_nfe in full scale is 300,000
                                                          log_frequency=100,
                                                          snapshot_frequency=100,
