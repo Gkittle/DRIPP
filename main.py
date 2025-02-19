@@ -65,8 +65,14 @@ for act in action:
 
 opt_par = OptimizationParameters()
 
+#Curtailment cost experiments
+parser = argparse.ArgumentParser()
+parser.add_argument("process", help="seed number")
+args = parser.parse_args()
+curt = int(args.process)
+
 # define parameters for model and algorithm 
-model = SB(opt_par, action_name, capacity, om, cx, t_depl, lifetime) 
+model = SB(opt_par, action_name, capacity, om, cx, t_depl, lifetime, curt) #remove curt parameter when not doing curtailment unit cost experiments
 algorithm = PTreeOpt(model.simulate,
                      feature_bounds=[[0, 35000],
                                      [-3, 3], [-3, 3],
@@ -129,34 +135,34 @@ if __name__ == '__main__':
     result.best_score = best_score
     result.snapshots = snapshots
     result.model = model
-    string = 'results/test_results' + str(opt_par.drought_type[0]) + '_' + str(opt_par.drought_type[1]) + '_' + str(seed) +'.dat'
+    string = 'results/test_results' + str(opt_par.drought_type[0]) + '_' + str(opt_par.drought_type[1]) + '_' + str(seed) + str(curt) +'.dat' #remove curt when not running curtailment cost experiment
 
     with open(string, 'wb') as f: 
         pickle.dump(result, f)
         
         
 ####### simulate best_result to visualize some trajectories
-    model_sim = SBsim(opt_par, action_name, capacity, om, cx, t_depl, lifetime) 
-    log = model_sim.simulate(best_solution, 0)
+    #model_sim = SBsim(opt_par, action_name, capacity, om, cx, t_depl, lifetime, curt)  #remove curt parameter when not doing curtailment unit cost experiments
+    #log = model_sim.simulate(best_solution, 0)
     
 ####### some demo plots
     #plt.style.use('seaborn-darkgrid')
 
-    fig, axs = plt.subplots(3)
+    #fig, axs = plt.subplots(3)
     #fig.suptitle('For demo purpose only \n These results are not converged')
     
-    axs[0].fill_between(range(1200), log.sri36, where = (np.array(log.sri36)>0), color = '#73A5C6') 
-    axs[0].set_ylabel('SRI [-]')
-    axs[0].fill_between(range(1200), log.sri36, where = (np.array(log.sri36)<0), color = '#ff0000' )
+    #axs[0].fill_between(range(1200), log.sri36, where = (np.array(log.sri36)>0), color = '#73A5C6') 
+    #axs[0].set_ylabel('SRI [-]')
+    #axs[0].fill_between(range(1200), log.sri36, where = (np.array(log.sri36)<0), color = '#ff0000' )
     
-    axs[1].fill_between(range(1200), log.capacity, color = '#FF6600' )
-    axs[1].set_ylabel('Capacity \n [AF/month]')
+    #axs[1].fill_between(range(1200), log.capacity, color = '#FF6600' )
+    #axs[1].set_ylabel('Capacity \n [AF/month]')
     
-    axs[2].fill_between(range(1200), log.sc, color = '#00316E' )
-    axs[2].set_xlabel('Time [months]')
-    axs[2].set_ylabel('Storage [AF]')
+    #axs[2].fill_between(range(1200), log.sc, color = '#00316E' )
+    #axs[2].set_xlabel('Time [months]')
+    #axs[2].set_ylabel('Storage [AF]')
 
-    fig.savefig("plot_example.png")
+    #fig.savefig("plot_example.png")
     
     
     

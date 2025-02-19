@@ -33,7 +33,7 @@ class log_results:
 
 class SB(object):
    ############# define relevant class parameters
-    def __init__(self, opt_par, action_name, capacity, om, cx, t_depl, lifetime):
+    def __init__(self, opt_par, action_name, capacity, om, cx, t_depl, lifetime, curtailment_unitcost = 5998):
         self.T           = 12 # period 
         self.gibraltar   = Gibraltar(opt_par.drought_type)
         self.cachuma     = Cachuma(opt_par.drought_type)
@@ -62,7 +62,7 @@ class SB(object):
         self.distr_costs = []
         self.max_swp_market = 275
         self.market_cost  = 1500
-        self.curtailment_unitcost = 5998
+        self.curtailment_unitcost = curtailment_unitcost
         
 
     def simulate(self, P):
