@@ -115,7 +115,7 @@ if __name__ == '__main__':
 
 
 ##### set following condition to 1 for full scale optimization on computing cluster
-    if 0:
+    if 1:
         with MultiprocessingExecutor(processes=opt_par.cores) as executor:
             best_solution, best_score, snapshots = algorithm.run(max_nfe=300000, #max_nfe in full scale is 300,000
                                                          log_frequency=100,
