@@ -87,7 +87,7 @@ class SB(object):
         J = []
         
         for s in range(self.nsim):            
-
+            #s should be randomized when selecting from the drought scenarios?
 
             nc    = list( ncs[s,:] ) 
             ngi   = list( ngis[s,:] )

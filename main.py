@@ -74,6 +74,24 @@ if 0:
 else:
     curt = 5998
 
+#Optimization parameter sweep
+if 1:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("nfe", type = int)
+    parser.add_argument("mu", type=int)
+    parser.add_argument("mut_prob",type=float)
+    parser.add_argument("cx_prob",type=float)
+    args=parser.parse_args()
+    nfe = args.nfe
+    mu = args.mu
+    mut_prob = args.mut_prob
+    cx_prob = args.cx_prob
+else:
+    nfe_ = 300000
+    mu_ = 10
+    mut_prob_ = 0.5
+    cx_prob_ = 0.70
+
 # define parameters for model and algorithm 
 model = SB(opt_par, action_name, capacity, om, cx, t_depl, lifetime, curt) #remove curt parameter when not doing curtailment unit cost experiments
 algorithm = PTreeOpt(model.simulate,
@@ -91,8 +109,9 @@ algorithm = PTreeOpt(model.simulate,
 
                      discrete_actions=True,
                      action_names=action_name,
-                     mu=10, 
-                     cx_prob=0.70,
+                     mu=mu_, 
+                     mut_prob = mut_prob_,
+                     cx_prob=cx_prob_,
                      population_size=100, #set this parameter to 100 for full scale optimization and to 10 for scaled down 
                      max_depth=3,
                      multiobj=False,
@@ -120,7 +139,7 @@ if __name__ == '__main__':
 ##### set following condition to 1 for full scale optimization on computing cluster
     if 1:
         with MultiprocessingExecutor(processes=opt_par.cores) as executor:
-            best_solution, best_score, snapshots = algorithm.run(max_nfe=300000, #max_nfe in full scale is 300,000
+            best_solution, best_score, snapshots = algorithm.run(max_nfe=nfe_, #max_nfe in full scale is 300,000
                                                          log_frequency=100,
                                                          snapshot_frequency=100,
                                                          executor=executor,
