@@ -82,10 +82,10 @@ if 1:
     parser.add_argument("mut_prob",type=float)
     parser.add_argument("cx_prob",type=float)
     args=parser.parse_args()
-    nfe = args.nfe
-    mu = args.mu
-    mut_prob = args.mut_prob
-    cx_prob = args.cx_prob
+    nfe_ = args.nfe
+    mu_ = args.mu
+    mut_prob_ = args.mut_prob
+    cx_prob_ = args.cx_prob
 else:
     nfe_ = 300000
     mu_ = 10
