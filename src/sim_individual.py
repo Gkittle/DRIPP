@@ -344,7 +344,7 @@ class SBsim(object):
             sswp.append(s_)
             rswp.append(r_swp)
 
-            deficit = max( 0, self.demand[(t%12)] - max(0,rswp[t+1]) - max(0, rc[t+1]) - max(0, rgi[t+1]) - max(0, md[t]) - installed_capacity[t])
+            deficit = max( 0, self.demand[(t%12)]*(1 - reduction_amount[t]/100) - max(0,rswp[t+1]) - max(0, rc[t+1]) - max(0, rgi[t+1]) - max(0, md[t]) - installed_capacity[t])
             if deficit < 1e-10:
                 deficit = 0
 

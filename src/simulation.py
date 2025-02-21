@@ -300,7 +300,7 @@ class SB(object):
                 
                 
                 # calculation of deficit for penalty
-                deficit = max( 0, self.demand[(t%12)] - r_swp - r_c - r_gi - md[t] - installed_capacity[t])
+                deficit = max( 0, self.demand[(t%12)]*(1 - reduction_amount[t]/100) - r_swp - r_c - r_gi - md[t] - installed_capacity[t]) #altered demand to be the curtailed demand
                 if deficit < 1e-10:
                     deficit = 0
                             

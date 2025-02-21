@@ -66,10 +66,13 @@ for act in action:
 opt_par = OptimizationParameters()
 
 #Curtailment cost experiments
-parser = argparse.ArgumentParser()
-parser.add_argument("process", help="seed number")
-args = parser.parse_args()
-curt = int(args.process)
+if 0:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("process", help="seed number")
+    args = parser.parse_args()
+    curt = int(args.process)
+else:
+    curt = 5998
 
 # define parameters for model and algorithm 
 model = SB(opt_par, action_name, capacity, om, cx, t_depl, lifetime, curt) #remove curt parameter when not doing curtailment unit cost experiments
@@ -90,7 +93,7 @@ algorithm = PTreeOpt(model.simulate,
                      action_names=action_name,
                      mu=10, 
                      cx_prob=0.70,
-                     population_size=10, #set this parameter to 100 for full scale optimization and to 10 for scaled down 
+                     population_size=100, #set this parameter to 100 for full scale optimization and to 10 for scaled down 
                      max_depth=3,
                      multiobj=False,
                      )
