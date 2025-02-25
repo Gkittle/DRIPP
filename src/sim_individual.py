@@ -414,6 +414,8 @@ class SBsim(object):
         
         
 ######## write vectors to output
+        log.def_penalty = def_penalty
+        log.demand = self.demand
         log.capacity = installed_capacity
         log.sri12 = sri12
         log.sri36 = sri36

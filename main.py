@@ -75,7 +75,7 @@ else:
     curt = 5998
 
 #Optimization parameter sweep
-if 1:
+if 0:
     parser = argparse.ArgumentParser()
     parser.add_argument("nfe", type = int)
     parser.add_argument("mu", type=int)
