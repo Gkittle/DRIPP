@@ -90,7 +90,7 @@ else:
     nfe_ = 300000
     mu_ = 10
     mut_prob_ = 0.5
-    cx_prob_ = 0.70
+    cx_prob_ = 0.9 #Marta had it in main.py as 0.7, but it was never used in opt.py. It was hard-coded in at 0.9 because she created a new implementation where the cross-over probability is the probability of cross-over and mutation being possible
 
 # define parameters for model and algorithm 
 model = SB(opt_par, action_name, capacity, om, cx, t_depl, lifetime, curt) #remove curt parameter when not doing curtailment unit cost experiments
@@ -99,7 +99,7 @@ algorithm = PTreeOpt(model.simulate,
                                      [-3, 3], [-3, 3],
                                      [0, 12100],[0, 12100],[0, 12100],
                                      [-20000, 20000],[-20000, 20000],[-20000, 20000],
-                                     [0,800], [0, 800], [0, 25] ],
+                                     [0,800], [0, 800], [0, 40] ],
 
                      feature_names=['Surface Storage',
                                     'SRI 1y', 'SRI 3y',
@@ -115,6 +115,7 @@ algorithm = PTreeOpt(model.simulate,
                      population_size=100, #set this parameter to 100 for full scale optimization and to 10 for scaled down 
                      max_depth=3,
                      multiobj=False,
+                     num_policies = 6
                      )
 
 if __name__ == '__main__':

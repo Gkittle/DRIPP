@@ -133,9 +133,9 @@ class SB(object):
             count             = 5
     
     
-            # binary value that indicates whether the plant location is occupied by a plant (1) or not (0)
+            # binary value that indicates whether the plant location is occupied by a plant (1) or not (0) or if a level of curtailment is triggered
             Location = {'Desal': 0, 'WWTP': 0, 'L1':0, 'L2':0, 'L3':0, 'L4':0,
-                        'L5':0, 'L6':0, 'L7':0}
+                        'L5':0, 'L6':0, 'L7':0, 'D1':0, 'D2':0, 'D3':0}
     
     
             for t in range(H):
@@ -168,6 +168,7 @@ class SB(object):
                 policy_con, rules_con = P[2].evaluate(indicators) #commiss curtail
                 policy_rmc, rules_rmc = P[3].evaluate(indicators) #decomm central
                 policy_rmd, rules_rmd = P[4].evaluate(indicators) #decomm decentral
+                policy_rco, rules_rco = P[5].evaluate(indicators) #decomm curtail
                 
     
                 Location['Desal']  = desal_loc[t]
@@ -179,6 +180,7 @@ class SB(object):
                 Location['L5']     = l5_loc[t]
                 Location['L6']     = l6_loc[t]
                 Location['L7']     = l7_loc[t]
+
                 count += 1
     
    ############## read policy decisions and implement it in model
@@ -251,9 +253,23 @@ class SB(object):
                             l1_loc[t+1:H] = 0
                 
                 # curtailment decisions
-                if any( [policy_con=='d5', policy_con=='d10', policy_con=='d15', policy_con=='d20'] ):
+                if any( [policy_con=='d1', policy_con=='d2', policy_con=='d3'] ):
                     reduction_amount = self.conservation_measures(t, reduction_amount, policy_con)
-    
+                    if policy_con == 'd1':
+                        Location['D1'] = 1
+                    elif policy_con == 'd2':
+                        Location['D2'] = 1
+                    elif policy_con == 'd3':
+                        Location['D3'] = 1
+
+                if any( [policy_rco =='d1', policy_rco =='d2', policy_rco=='d3'] ):
+                    if all( [Location['D1'] == 1, policy_rco =='d1']):
+                        reduction_amount = self.conservation_measures_remove(t, reduction_amount, policy_rco)
+                    elif all([Location['D2'] == 1, policy_rco == 'd2']):
+                        reduction_amount = self.conservation_measures_remove(t, reduction_amount, policy_rco)
+                    elif all([Location['D3'] == 1, policy_rco == 'd3']):
+                        reduction_amount = self.conservation_measures_remove(t, reduction_amount, policy_rco)
+
                 installed_capacity[t] = sum([desal_capac[t], wwtp_capac[t], l1_capac[t], l2_capac[t], l3_capac[t], l4_capac[t], l5_capac[t], l6_capac[t], l7_capac[t]])
                     
                 
@@ -468,25 +484,42 @@ class SB(object):
         return sum(capex), sum(opex)
                     
     def conservation_measures(self, t, reduction_amount, policy):
-        if policy == 'd5':
-            rr = 5
-        elif policy == 'd10':
-            rr = 10
-        elif policy == 'd15':
-            rr = 15
-        elif policy == 'd20':
-            rr = 20
-        else:
-            print('unrecognized conservation')
+        i = 0
+        for action in self.action_name:
+            if policy == action:
+                rr = self.capacity[i]
+                t_depl = self.capacity[i]
+                break
+            i = i + 1
+
+        Ti = min(self.H, t + t_depl)
+        #Tf = min(Ti + 50*12, self.H) #forget effect after 15 years 
+        # lognormal distribution
+        #sigma = 1.03 #shape
+        #scale = 8.0 #alpha
+        #reduction_amount[t : Ti]  = [max( exist_red, min(rr, exist_red + rr)) for exist_red in reduction_amount[t : Ti] ]
+        #surv = [pow(1+pow(tt/12/scale, sigma),-1) for tt in range(Tf - t - 1)]
+        #reduction_amount[Ti : Tf] = [max( exist_red, min( rr, rr*su))  for exist_red,su in zip(reduction_amount[Ti : Tf], surv) ]
+        reduction_amount[Ti:] = [max( exist_red, min(rr, exist_red + rr)) for exist_red in reduction_amount[Ti:] ]
     
+        return reduction_amount
     
-        Ti = min(self.H, t + 1)
+    def conservation_measures_remove(self, t, reduction_amount, policy):
+        i = 0
+        for action in self.action_name:
+            if policy == action:
+                rr = self.capacity[i]
+                t_depl = self.capacity[i]
+                break
+            i = i + 1
+
+        Ti = min(self.H, t + t_depl)
         Tf = min(Ti + 50*12, self.H) #forget effect after 15 years 
         # lognormal distribution
         sigma = 1.03 #shape
         scale = 8.0 #alpha
-        reduction_amount[t : Ti]  = [max( exist_red, min(rr, exist_red + rr)) for exist_red in reduction_amount[t : Ti] ]
-        surv = [pow(1+pow(tt/12/scale, sigma),-1) for tt in range(Tf - t - 1)]
+        #reduction_amount[t : Ti]  = [max( exist_red, min(rr, exist_red + rr)) for exist_red in reduction_amount[t : Ti] ]
+        surv = [pow(1+pow(tt/12/scale, sigma),-1) for tt in range(Tf - Ti)]
         reduction_amount[Ti : Tf] = [max( exist_red, min( rr, rr*su))  for exist_red,su in zip(reduction_amount[Ti : Tf], surv) ]
     
         return reduction_amount

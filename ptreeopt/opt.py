@@ -72,12 +72,12 @@ class PTreeOpt(object):
         self.mu = mu
         self.max_depth = max_depth
         self.mut_prob = mut_prob
-        self.cx_prob = cx_prob
+        self.cx_prob = cx_prob #determines the likelihood of crossover or mutation being explored
         self.feature_names = feature_names
         self.discrete_features = discrete_features
         self.multiobj = multiobj
         self.epsilons = epsilons
-        self.num_policies = 5
+        self.num_policies = num_policies
 
         if feature_names is not None and\
            len(feature_names) != len(feature_bounds):
@@ -142,10 +142,10 @@ class PTreeOpt(object):
 
         while i < self.popsize:
             child = [[],[],[],[],[]]
-            if np.random.rand() < 0.9: #self.cx_prob: #either mutate or crossover
+            if np.random.rand() < self.cx_prob: #either mutate or crossover
                 if np.random.rand() < 0.5: #crossover
                     P1, P2 = self.population[ np.random.choice(parents, 2) ]
-                    for tree in range(5):
+                    for tree in range(self.num_policies):
                         child[tree] = self.crossover(P1[tree], P2[tree])[0]
                     # bloat control
                         while child[tree].get_depth() > self.max_depth:
@@ -153,7 +153,7 @@ class PTreeOpt(object):
                         child[tree].prune()
                 else: #mutation
                     PP = self.population[np.random.choice(parents, 1)]
-                    for tree in range(5):
+                    for tree in range(self.num_policies):
                         #np.random.randint(len(self.best_p))#choice(self.best_p, 1)
                         child[tree] = self.mutate( PP[0][tree], tree ) 
                         child[tree].prune()
@@ -221,11 +221,14 @@ class PTreeOpt(object):
 
             
             for member in population:
-                member[0].clear_count() # reset action counts to zero
-                member[1].clear_count()
-                member[2].clear_count()
-                member[3].clear_count()
-                member[4].clear_count()
+                for i in range(self.num_policies):
+                    member[i].clear_count()
+                #member[0].clear_count() # reset action counts to zero
+                #member[1].clear_count()
+                #member[2].clear_count()
+                #member[3].clear_count()
+                #member[4].clear_count()
+                #member[5].clear_count()
                 #member.normalize_count() # convert action count to percent
 
             nfe += self.popsize
@@ -393,7 +396,7 @@ class PTreeOpt(object):
 
     def random_individual(self):
         ensemble = [self.random_tree(action_type = i) for i in range(3)]
-        ensemble.extend( [self.random_rm_tree(ensemble[i]) for i in range(2) ] )
+        ensemble.extend( [self.random_rm_tree(ensemble[i]) for i in range(3) ] )
         return ensemble
 
     def select_truncation(self, obj):
