@@ -141,7 +141,7 @@ class PTreeOpt(object):
         i += 1
 
         while i < self.popsize:
-            child = [[],[],[],[],[]]
+            child = [[] for _ in range(self.num_policies)]
             if np.random.rand() < self.cx_prob: #either mutate or crossover
                 if np.random.rand() < 0.5: #crossover
                     P1, P2 = self.population[ np.random.choice(parents, 2) ]
