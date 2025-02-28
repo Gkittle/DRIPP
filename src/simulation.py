@@ -500,6 +500,11 @@ class SB(object):
     def conservation_measures_remove(self, t, reduction_amount, policy, Location):
         sigma = 1.03 #shape
         scale = 8.0 #alpha
+        remainder = 0
+        rr = 0
+        t_depl = 0
+        term = 0
+        final_rr = 0
 
         if all([Location['D1'] == 1, policy != 'd1']):
             remainder = 'd1'
@@ -518,7 +523,7 @@ class SB(object):
                 rr = self.capacity[i]
                 t_depl = self.t_depl[i]
             if action == remainder:
-                term = 12*scale*pow(pow(self.capacity[i], -1) - 1, pow(sigma, -1))
+                term = 12*scale*pow(pow(float(self.capacity[i]), -1) - 1, pow(sigma, -1))
                 final_rr = self.capacity[i]
 
             i = i + 1
