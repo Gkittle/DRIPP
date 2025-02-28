@@ -559,13 +559,13 @@ class SBsim(object):
         sigma = 1.03 #shape
         scale = 8.0 #alpha
 
-        if all(Location['D1'] == 1, policy != 'd1'):
+        if all([Location['D1'] == 1, policy != 'd1']):
             remainder = 'd1'
         
-        if all(Location['D2'] == 1, policy !='d2'):
+        if all([Location['D2'] == 1, policy !='d2']):
             remainder = 'd2'
         
-        if all(Location['D3'] == 1, policy != 'd3'):
+        if all([Location['D3'] == 1, policy != 'd3']):
             remainder = 'd3'
         
 
