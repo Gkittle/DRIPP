@@ -487,8 +487,8 @@ class SB(object):
         i = 0
         for action in self.action_name:
             if policy == action:
-                rr = self.capacity[i]
-                t_depl = self.capacity[i]
+                rr = self.capacity[i]/100.0
+                t_depl = self.t_depl[i]
                 break
             i = i + 1
 
@@ -500,6 +500,7 @@ class SB(object):
     def conservation_measures_remove(self, t, reduction_amount, policy, Location):
         sigma = 1.03 #shape
         scale = 8.0 #alpha
+        sigma_inv = 1/sigma
         remainder = 0
         rr = 0
         t_depl = 0
@@ -520,10 +521,10 @@ class SB(object):
         term = 50*12 #if not continuing with a different level of curtailment, forget curtailment after 15 years
         for action in self.action_name:
             if policy == action:
-                rr = self.capacity[i]
+                rr = self.capacity[i]/100.0
                 t_depl = self.t_depl[i]
             if action == remainder:
-                term = 12*scale*pow((1/(float(self.capacity[i]))) - 1, (1/sigma))
+                term = 12*scale*pow((1/(float(self.capacity[i]/100.0))) - 1, sigma_inv)
                 final_rr = self.capacity[i]
 
             i = i + 1
