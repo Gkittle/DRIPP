@@ -523,14 +523,14 @@ class SB(object):
                 rr = self.capacity[i]
                 t_depl = self.t_depl[i]
             if action == remainder:
-                term = 12*scale*pow(pow(float(self.capacity[i]), -1) - 1, pow(sigma, -1))
+                term = 12*scale*pow((1/(float(self.capacity[i]))) - 1, (1/sigma))
                 final_rr = self.capacity[i]
 
             i = i + 1
 
         Ti = min(self.H, t + t_depl)
         #Tf = min(Ti + 50*12, self.H) #forget effect after 15 years 
-        Tf = min(Ti + term, self.H)
+        Tf = min(Ti + int(term), self.H)
         # lognormal distribution
         surv = [pow(1+pow(tt/12/scale, sigma),-1) for tt in range(Tf - Ti)]
         reduction_amount[Ti : Tf] = [max( exist_red, min( rr, rr*su))  for exist_red,su in zip(reduction_amount[Ti : Tf], surv) ]
