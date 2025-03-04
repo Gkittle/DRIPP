@@ -538,19 +538,12 @@ class SBsim(object):
         i = 0
         for action in self.action_name:
             if policy == action:
-                rr = self.capacity[i]
-                t_depl = self.capacity[i]
+                rr = self.capacity[i]/100.0
+                t_depl = self.t_depl[i]
                 break
             i = i + 1
 
         Ti = min(self.H, t + t_depl)
-        #Tf = min(Ti + 50*12, self.H) #forget effect after 15 years 
-        # lognormal distribution
-        #sigma = 1.03 #shape
-        #scale = 8.0 #alpha
-        #reduction_amount[t : Ti]  = [max( exist_red, min(rr, exist_red + rr)) for exist_red in reduction_amount[t : Ti] ]
-        #surv = [pow(1+pow(tt/12/scale, sigma),-1) for tt in range(Tf - t - 1)]
-        #reduction_amount[Ti : Tf] = [max( exist_red, min( rr, rr*su))  for exist_red,su in zip(reduction_amount[Ti : Tf], surv) ]
         reduction_amount[Ti:] = [max( exist_red, min(rr, exist_red + rr)) for exist_red in reduction_amount[Ti:] ]
     
         return reduction_amount
@@ -558,6 +551,12 @@ class SBsim(object):
     def conservation_measures_remove(self, t, reduction_amount, policy, Location):
         sigma = 1.03 #shape
         scale = 8.0 #alpha
+        sigma_inv = 1/sigma
+        remainder = 0
+        rr = 0
+        t_depl = 0
+        term = 0
+        final_rr = 0
 
         if all([Location['D1'] == 1, policy != 'd1']):
             remainder = 'd1'
@@ -573,17 +572,17 @@ class SBsim(object):
         term = 50*12 #if not continuing with a different level of curtailment, forget curtailment after 15 years
         for action in self.action_name:
             if policy == action:
-                rr = self.capacity[i]
+                rr = self.capacity[i]/100.0
                 t_depl = self.t_depl[i]
             if action == remainder:
-                term = 12*scale*pow(pow(self.capacity[i], -1) - 1, pow(sigma, -1))
+                term = 12*scale*pow((1/(float(self.capacity[i]/100.0))) - 1, sigma_inv)
                 final_rr = self.capacity[i]
 
             i = i + 1
 
         Ti = min(self.H, t + t_depl)
         #Tf = min(Ti + 50*12, self.H) #forget effect after 15 years 
-        Tf = min(Ti + term, self.H)
+        Tf = min(Ti + int(term), self.H)
         # lognormal distribution
         surv = [pow(1+pow(tt/12/scale, sigma),-1) for tt in range(Tf - Ti)]
         reduction_amount[Ti : Tf] = [max( exist_red, min( rr, rr*su))  for exist_red,su in zip(reduction_amount[Ti : Tf], surv) ]

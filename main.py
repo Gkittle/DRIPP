@@ -65,6 +65,19 @@ for act in action:
 
 opt_par = OptimizationParameters()
 
+#Percentage curtailment aquiecense experiments
+if 0:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("percentage", type = int)
+    args = parser.parse_args()
+    per = int(args.percentage)
+    i = 0
+    for val in action_type:
+        if val == 2:
+            capacity[i] = per*capacity[i]/100
+        i = i + 1
+
+
 #Curtailment cost experiments
 if 0:
     parser = argparse.ArgumentParser()
