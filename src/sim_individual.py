@@ -336,8 +336,9 @@ class SBsim(object):
             if len(rules_rmd) > len(complete_rules_rmd):
                 complete_rules_rmd = rules_rmd
 
-            dem = self.demand[(t%12)]*( 1 - reduction_amount[t]/100 )
-            current_curtail.append(self.demand[(t%12)]*( reduction_amount[t]/100 ))
+            mean_demand = sum(self.demand)/len(self.demand)
+            dem =  self.demand[(t%12)] - mean_demand*(reduction_amount[t]/100 )
+            current_curtail = mean_demand*( reduction_amount[t]/100 )
             d = max( 0, dem - installed_capacity[t] - md[t] )
 
             SS = sc[-1] + sgi[-1] + sswp[-1]
@@ -377,7 +378,7 @@ class SBsim(object):
 
 
             # calculation of deficit for penalty
-            deficit = max( 0, self.demand[(t%12)]*(1 - reduction_amount[t]/100) - max(0,rswp[t+1]) - max(0, rc[t+1]) - max(0, rgi[t+1]) - max(0, md[t]) - installed_capacity[t])
+            deficit = max( 0, dem - max(0,rswp[t+1]) - max(0, rc[t+1]) - max(0, rgi[t+1]) - max(0, md[t]) - installed_capacity[t])
             if deficit < 1e-10:
                 deficit = 0
 
@@ -388,7 +389,7 @@ class SBsim(object):
             if t>=10*12:
                 def_penalty.append(max(0, deficit - market[t]))
 
-            dis_cost.append(1.8555*( 1 - reduction_amount[t]/100 ))
+            dis_cost.append(1.8555*( dem/self.demand[t%12] ))
             if desal_capac[t] > 0:
                 dis_cost[t] += 0.240
 

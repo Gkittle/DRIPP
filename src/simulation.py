@@ -273,8 +273,9 @@ class SB(object):
    ############## simulation of surface water reservoirs
                 
                 # demand from surface water = total demand - tech installed and curtailment
-                dem = self.demand[(t%12)]*( 1 - reduction_amount[t]/100 )
-                current_curtail = self.demand[(t%12)]*( reduction_amount[t]/100 )
+                mean_demand = sum(self.demand)/len(self.demand)
+                dem =  self.demand[(t%12)] - mean_demand*(reduction_amount[t]/100 )
+                current_curtail = mean_demand*( reduction_amount[t]/100 )
                 d = max( 0, dem - installed_capacity[t] - md[t] )
 
                 SS = sc[-1] + sgi[-1] + sswp[-1]
@@ -313,7 +314,7 @@ class SB(object):
                 
                 
                 # calculation of deficit for penalty
-                deficit = max( 0, self.demand[(t%12)]*(1 - reduction_amount[t]/100) - r_swp - r_c - r_gi - md[t] - installed_capacity[t]) #altered demand to be the curtailed demand
+                deficit = max( 0, dem - r_swp - r_c - r_gi - md[t] - installed_capacity[t]) #altered demand to be the curtailed demand
                 if deficit < 1e-10:
                     deficit = 0
                             
@@ -329,7 +330,7 @@ class SB(object):
                 curtailment_cost += current_curtail*self.curtailment_unitcost/10e6
                         
                 # distribution costs
-                dis_cost += 1.8555*( 1 - reduction_amount[t]/100 )
+                dis_cost += 1.8555*( dem/self.demand[t%12] )
                 if desal_capac[t] > 0:
                     dis_cost += 0.240
 
