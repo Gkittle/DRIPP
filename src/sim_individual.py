@@ -4,6 +4,18 @@
 Created on Fri Oct 15 10:37:27 2021
 
 @author: martazaniolo
+
+This script contains 
+
+            # n: inflow
+            # s: storage
+            # u: release decision
+            # r: release
+            
+            #c: cachuma
+            #gi: gibraltar
+            #swp: state water proj
+
 """
 
 import numpy as np
@@ -12,7 +24,6 @@ from gibraltar_lake import Gibraltar
 from swp_lake import SWP
 from policy import *
 import numpy.matlib as mat
-from scipy.stats import lognorm
 
 class log_results:
     pass
@@ -24,6 +35,7 @@ class log_results:
 
 
 class SBsim(object):
+   ############# define relevant class parameters
     def __init__(self, opt_par, action_name, capacity, om, cx, t_depl, lifetime, curtailment_unitcost = 5998):
         self.T           = 12 # period 
         self.gibraltar   = Gibraltar(opt_par.drought_type)
@@ -32,15 +44,14 @@ class SBsim(object):
         self.H           = self.gibraltar.H # length of time horizon
         self.Ny          = int(self.H/self.T) #number of years
         self.demand      = np.loadtxt('data/SB_water_demand.txt') 
-        self.nom_cost_sw = 100 
+        self.nom_cost_sw = 100
         self.nom_cost_rs = 420 
 
         self.mds   = np.loadtxt('data/Inflow_Individual_Scenarios/mission_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
         self.sri12 = np.loadtxt('data/Inflow_Individual_Scenarios/gibrSRI12_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
         self.sri36 = np.loadtxt('data/Inflow_Individual_Scenarios/gibrSRI36_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
-        self.nsim        = 20 
-        
         self.dem_rep     = mat.repmat(self.demand, 1, self.Ny)[0]
+
         actions = []
         for act in action_name:
             actions.extend(act)
@@ -56,14 +67,18 @@ class SBsim(object):
         self.market_cost  = 1500
         self.curtailment_unitcost = curtailment_unitcost
 
+
     def simulate(self, P, s):
+
+        self.H  = self.gibraltar.H 
+        H       = self.H
+        self.Ny = H/self.T
+
+
         ncs     = self.cachuma.inflow
         ngis    = self.gibraltar.inflow
         nswps   = self.swp.inflow
 
-        self.H = self.gibraltar.H 
-        H = self.H
-        self.Ny = H/self.T
 
 ######## prepare output fields
         log                  = log_results()
@@ -118,18 +133,18 @@ class SBsim(object):
         md = []
         sri12 = []
         sri36 = []
-            
-        nc = list( ncs[s,:])
-        ngi =  list( ngis[s,:])       
-        nswp =  list( nswps[s,:])      
-        md =  list( self.mds[s,:])   
-        sri12 =  list( self.sri12[s,:]) 
-        sri36 =  list( self.sri36[s,:]) 
+
+        nc    = list( ncs[s,:] )
+        ngi   = list( ngis[s,:] )
+        nswp  = list( nswps[s,:] )
+        md    = list( self.mds[s,:] )
+        sri12 = list( self.sri12[s,:] ) 
+        sri36 = list( self.sri36[s,:] )
+
 
         sc      = [self.cachuma.s0]
         sgi     = [self.gibraltar.s0]
         sswp    = [self.swp.s0]
-        ss = []
 
         rc      = [-999]
         rgi     = [-999]
@@ -138,10 +153,10 @@ class SBsim(object):
         opex     = np.zeros(H)
         capex    = np.zeros(H)
         installed_capacity = np.zeros(H)
-        reduction_amount = np.zeros(H)
+        reduction_amount = np.zeros(H) #curtailment measures
         desal_capac  = np.zeros(H)
-        wwtp_capac   = np.zeros(H)
-        l1_capac     = np.zeros(H)
+        wwtp_capac   = np.zeros(H) # waste water treat plant for centralized P and NP reuse
+        l1_capac     = np.zeros(H) # location of decentralized P and NP
         l2_capac     = np.zeros(H)
         l3_capac     = np.zeros(H)
         l4_capac     = np.zeros(H)
@@ -159,14 +174,13 @@ class SBsim(object):
         l6_loc       = np.zeros(H)
         l7_loc       = np.zeros(H)
 
-        uc_capac          = np.zeros(H)
         def_penalty       = []
+        uc_capac          = np.zeros(H)
         dis_cost          = []
-        curtailment_cost  = []
         market            = []
+        curtailment_cost  = []
         current_curtail   = []
-
-        count = 5
+        count             = 5
 
         actions_list      = []
         indicators_list   = []
@@ -179,7 +193,6 @@ class SBsim(object):
         for t in range(H):
     ############ compute value of indicators at time T 
             storage_t    = self.compute_stor(sc + sswp + sgi)
-            ss.append(storage_t)
     
             allocat12t   = self.compute_alloc(t, nc+nswp, 1)
             allocat36t   = self.compute_alloc(t, nc+nswp, 3)
@@ -220,7 +233,6 @@ class SBsim(object):
             Location['L6']     = l6_loc[t]
             Location['L7']     = l7_loc[t]
             count += 1
-
 
             if any( [policy_cen=='SW200', policy_cen=='SW300', policy_cen=='SW400', policy_cen=='SW500'] ):
                 if Location['Desal'] == 0:
@@ -343,6 +355,14 @@ class SBsim(object):
                 nc_ = nc[int((t-9)/self.T)]
             else:
                 nc_ = 0
+
+            if (t%12)==4: 
+                nswp_ = nswp[int((t-4)/self.T)]
+            else:
+                nswp_ = 0
+
+
+
             s_, r_c  = self.cachuma.integration(sc[t], uc, nc_, d)
             sc.append(s_)
             rc.append(r_c)
@@ -351,77 +371,71 @@ class SBsim(object):
             sgi.append(s_)
             rgi.append(r_gi)
 
-            if (t%12)==4: 
-                nswp_ = nswp[int((t-4)/self.T)]
-            else:
-                nswp_ = 0
-
             s_, r_swp  = self.swp.integration(sswp[t], uswp, nswp_, d)
             sswp.append(s_)
             rswp.append(r_swp)
 
+
+            # calculation of deficit for penalty
             deficit = max( 0, self.demand[(t%12)]*(1 - reduction_amount[t]/100) - max(0,rswp[t+1]) - max(0, rc[t+1]) - max(0, rgi[t+1]) - max(0, md[t]) - installed_capacity[t])
             if deficit < 1e-10:
                 deficit = 0
 
+            # restricted purchase of market water to mitigate the deficit 
             max_market = max( 0, self.max_swp_market - r_swp )
             market.append(min( max_market, deficit ))
 
-            if t >= 10*12:
+            if t>=10*12:
                 def_penalty.append(max(0, deficit - market[t]))
 
-            curtailment_cost.append(current_curtail[t]*self.curtailment_unitcost/10e6)
-
-
-            dis_cost.append(1.8555 * (1-reduction_amount[t]/100 ))
+            dis_cost.append(1.8555*( 1 - reduction_amount[t]/100 ))
             if desal_capac[t] > 0:
-                dis_cost[t] = dis_cost[t] + 0.240
+                dis_cost[t] += 0.240
 
             if l3_capac[t] == 20:
-                dis_cost[t] = dis_cost[t] - 0.1126
+                dis_cost[t] += - 0.1126
             if l3_capac[t] == 50:
-                dis_cost[t] = dis_cost[t] - 0.1696
+                dis_cost[t] += - 0.1696
 
             if l6_capac[t] == 20:
-                dis_cost[t] = dis_cost[t] - 0.0149
+                dis_cost[t] += - 0.0149
             if l6_capac[t] == 50:
-                dis_cost[t] = dis_cost[t] - 0.0163
+                dis_cost[t] += - 0.0163
 
             if l2_capac[t] == 20:
-                dis_cost[t] = dis_cost[t] - 0.0121
+                dis_cost[t] +=  0.0121 #minus in individual, plus in reg
             if l2_capac[t] == 50:
-                dis_cost[t] = dis_cost[t] - 0.0199
+                dis_cost[t] += - 0.0199
 
             if l4_capac[t] == 20:
-                dis_cost[t] = dis_cost[t] - 0.0119
+                dis_cost[t] += - 0.0119
             if l4_capac[t] == 50:
-                dis_cost[t] = dis_cost[t] - 0.0127
+                dis_cost[t] += - 0.0127
 
             if l5_capac[t] == 20:
-                dis_cost[t] = dis_cost[t] - 0.0195
+                dis_cost[t] += - 0.0195
             if l5_capac[t] == 50:
-                dis_cost[t] = dis_cost[t] - 0.0125
+                dis_cost[t] += - 0.0125
 
             if l7_capac[t] == 20:
-                dis_cost[t] = dis_cost[t] - 0.0096
+                dis_cost[t] += - 0.0096
             if l7_capac[t] == 50:
-                dis_cost[t] = dis_cost[t] - 0.0151
+                dis_cost[t] += - 0.0151
 
             if l1_capac[t] == 20:
-                dis_cost[t] = dis_cost[t] + 0.0014
+                dis_cost[t] += 0.0014
             if l1_capac[t] == 50:
-                dis_cost[t] = dis_cost[t] - 0.0050
-
+                dis_cost[t] += - 0.0050
 
         rc        = rc[1:]
         rgi       = rgi[1:]
         rswp      = rswp[1:]
-        rtunnel   = md
-
+        rtunnel   =md
         nat_water_cost = self.compute_sf_cost(rc, rgi, rswp, rtunnel)
-        capex, opex = self.tech_cost(desal_capac, wwtp_capac, l1_capac, l2_capac, l3_capac, l4_capac, l5_capac, l6_capac, l7_capac)
+        curtailment_cost.append(current_curtail[t]*self.curtailment_unitcost/10e6)
 
-        Cost = nat_water_cost/10e6/self.Ny + sum(market)*self.market_cost/10e6/self.Ny + sum(curtailment_cost)/self.Ny + sum(opex)/self.Ny + sum(capex)/self.Ny + sum(dis_cost)/self.Ny/10e6
+        capex, opex = self.tech_cost(desal_capac, wwtp_capac, l1_capac, l2_capac, l3_capac, l4_capac, l5_capac, l6_capac, l7_capac)
+        Cost = nat_water_cost/10e6/self.Ny + sum(market)*self.market_cost/10e6/self.Ny + sum(curtailment_cost)/self.Ny + opex/self.Ny + capex/self.Ny + sum(dis_cost)/self.Ny/10e6
 
         Jcost = Cost + max(0, sum(def_penalty))
         
@@ -436,7 +450,6 @@ class SBsim(object):
         log.sri12 = sri12
         log.sri36 = sri36
         log.sc = sc[:-1]
-        log.ss = ss
         log.reduction_magn = current_curtail
         log.reduction_perc = reduction_amount
         log.residualdeficit = max(deficit_annual)
@@ -457,6 +470,29 @@ class SBsim(object):
 
         return log
 
+    def planning_policy(self, policy, t, installed_capacity, opex, capex, uc, tech_cap, tech_loc, tech_lifespan):
+        i = 0
+        H = self.H
+        for action in self.action_name:
+            if policy == action:
+                CXdv = int(self.lifetime[i])
+    
+                dep   = int(self.t_depl[i])
+                T     = t + dep + int(self.lifetime[i])*12
+    
+                if t+dep < H:
+                    y_left = max(0, T-H)
+                    T = min(H, T)
+                    uc[t:t+dep ]                    = uc[t:t+dep] + float(self.capacity[i])
+                    #installed_capacity[t + dep : T] = installed_capacity[t + dep : T] + float(self.capacity[i])
+                    #opex[t + dep : T]               = opex[t + dep : T]  + mat.repmat( float(self.om[i])/12, 1, T-dep-t )
+                    capex[t + dep : T]              = capex[t + dep : T] + mat.repmat( float(self.cx[i])/CXdv, 1, T-dep-t )
+                    tech_cap[t + dep : T]           = tech_cap[t + dep : T] + float(self.capacity[i])
+                    tech_loc[t : T]                 = tech_loc[t : T] + 1
+                    tech_lifespan[t + dep : T]      = range(int(self.lifetime[i])*12, y_left, -1)
+            i += 1
+    
+        return installed_capacity, opex, capex, uc, tech_cap, tech_loc, tech_lifespan
 
     def location_track(self, policy, t, uc, tech_loc, tech_cap):
         i = 0
@@ -506,7 +542,7 @@ class SBsim(object):
                         tech_life += 1
                         T += 1
                     tot_opex += opex*tech_life
-                    if all( [t+tech_life >= H, tech_life < 480] ):
+                    if all( [t+tech_life >= H, tech_life < 240] ):
                         tot_capex += capex*(tech_life/480) #reduce end-of-horizon problem
                     else:
                         tot_capex += capex
@@ -530,9 +566,7 @@ class SBsim(object):
         capex[8], opex[8] = self.cost_from_action(l7_capac, 'dec')
 
 
-        return capex, opex
-
-
+        return sum(capex), sum(opex)
 
     def conservation_measures(self, t, reduction_amount, policy, Location):
         i = 0
@@ -590,14 +624,21 @@ class SBsim(object):
     
         return reduction_amount
 
-
-
     def compute_sf_cost(self, rc, rgi, rswp, r_tunnel):
         # surface water
         sw_c = sum( [(c1+c2+c3)*self.nom_cost_sw for c1, c2, c3 in zip(rc, rgi, r_tunnel)] )
         # swp
         swp_c = sum( [ cs * self.nom_cost_rs for cs in rswp ] )
         return sw_c + swp_c
+
+    def compute_sf_stepcost(self, rc, rgi, r_tunnel, rswp, market):
+        # surface water
+        sw_c = (rc+rgi+r_tunnel)*self.nom_cost_sw 
+        # swp
+        swp_c =  rswp * self.nom_cost_rs 
+        # market
+        mark_swp = market * self.market_cost 
+        return sw_c + swp_c + mark_swp
 
     def compute_cost_traj(self, rc, rgi, rswp, r_tunnel):
         # surface water

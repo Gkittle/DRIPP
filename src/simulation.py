@@ -21,7 +21,6 @@ from swp_lake import SWP
 from policy import *
 import numpy.matlib as mat
 
-
 class log_results:
     pass
     class traj:
@@ -63,10 +62,10 @@ class SB(object):
         self.max_swp_market = 275
         self.market_cost  = 1500
         self.curtailment_unitcost = curtailment_unitcost
-        
+
 
     def simulate(self, P):
-        
+
         self.H  = self.gibraltar.H 
         H       = self.H
         self.Ny = H/self.T
@@ -75,7 +74,6 @@ class SB(object):
         ncs     = self.cachuma.inflow
         ngis    = self.gibraltar.inflow
         nswps   = self.swp.inflow
-
 
 
         nc = []
@@ -89,14 +87,14 @@ class SB(object):
         for s in range(self.nsim):            
             #s should be randomized when selecting from the drought scenarios?
 
-            nc    = list( ncs[s,:] ) 
+            nc    = list( ncs[s,:] )
             ngi   = list( ngis[s,:] )
-            nswp  = list( nswps[s,:] )   
-            md    = list( self.mds[s,:] ) 
+            nswp  = list( nswps[s,:] )
+            md    = list( self.mds[s,:] )
             sri12 = list( self.sri12[s,:] ) 
             sri36 = list( self.sri36[s,:] )
-            
-            
+
+
             sc      = [self.cachuma.s0]
             sgi     = [self.gibraltar.s0]
             sswp    = [self.swp.s0]
@@ -114,7 +112,7 @@ class SB(object):
             l5_capac     = np.zeros(H)
             l6_capac     = np.zeros(H)
             l7_capac     = np.zeros(H)
-    
+
             desal_loc    = np.zeros(H)
             wwtp_loc     = np.zeros(H)
             l1_loc       = np.zeros(H)
@@ -180,29 +178,28 @@ class SB(object):
                 Location['L5']     = l5_loc[t]
                 Location['L6']     = l6_loc[t]
                 Location['L7']     = l7_loc[t]
-
                 count += 1
-    
+
    ############## read policy decisions and implement it in model
                 # centralized decisions
                 if any( [policy_cen=='SW200', policy_cen=='SW300', policy_cen=='SW400', policy_cen=='SW500'] ):
                     if Location['Desal'] == 0:
                         uc_capac, desal_loc, desal_capac = self.location_track(policy_cen, t, uc_capac, desal_loc, desal_capac)
-                    
+
                 if desal_capac[t]>0:
                     if any( [policy_rmc=='SW200', policy_rmc=='SW300', policy_rmc=='SW400', policy_rmc=='SW500'] ):
                         desal_capac[t+1:H] = 0 #deactivate desal
                         desal_loc[t+1:H] = 0
-    
+
                 if any( [policy_cen=='PR200', policy_cen=='PR300', policy_cen=='PR400', policy_cen=='PR500', policy_cen=='NPR100'] ):
                     if Location['WWTP'] == 0:
                         uc_capac, wwtp_loc, wwtp_capac = self.location_track(policy_cen, t, uc_capac, wwtp_loc, wwtp_capac)
-                        
+
                 if wwtp_capac[t]>0:
                     if any( [policy_rmc=='PR200', policy_rmc=='PR300', policy_rmc=='PR400', policy_rmc=='PR500', policy_rmc=='NPR100'] ):
-                        wwtp_capac[t+1:H] = 0 #deactivate 
+                        wwtp_capac[t+1:H] = 0 #deactivate
                         wwtp_loc[t+1:H] = 0
-                        
+
                 # decentralized decisions        
                 if any( [policy_dec=='PR50', policy_dec=='NPR20'] ):
                     if count > 5:
@@ -231,10 +228,10 @@ class SB(object):
                 if l1_loc[t]>0: #at least one distributed plant
                     if any( [policy_rmd=='PR50', policy_rmd=='NPR20'] ):
                         if l7_capac[t]>0:
-                            l7_capac[t+1:H] = 0 
+                            l7_capac[t+1:H] = 0
                             l7_loc[t+1:H] = 0
                         elif l6_capac[t]>0:
-                            l6_capac[t+1:H] = 0 
+                            l6_capac[t+1:H] = 0
                             l6_loc[t+1:H] = 0
                         elif l5_capac[t]>0:
                             l5_capac[t+1:H] = 0 
@@ -246,7 +243,7 @@ class SB(object):
                             l3_capac[t+1:H] = 0 
                             l3_loc[t+1:H] = 0
                         elif l2_capac[t]>0:
-                            l2_capac[t+1:H] = 0  
+                            l2_capac[t+1:H] = 0 
                             l2_loc[t+1:H] = 0
                         elif l1_capac[t]>0:
                             l1_capac[t+1:H] = 0 
@@ -279,7 +276,7 @@ class SB(object):
                 dem = self.demand[(t%12)]*( 1 - reduction_amount[t]/100 )
                 current_curtail = self.demand[(t%12)]*( reduction_amount[t]/100 )
                 d = max( 0, dem - installed_capacity[t] - md[t] )
-                        
+
                 SS = sc[-1] + sgi[-1] + sswp[-1]
                 uc  = sc[-1]/SS 
                 ugi = sgi[-1]/SS
@@ -323,7 +320,7 @@ class SB(object):
                 # restricted purchase of market water to mitigate the deficit 
                 max_market = max( 0, self.max_swp_market - r_swp )
                 market = min( max_market, deficit ) 
-                
+            
                 if t>10*12:
                     def_penalty += deficit - market
                 
@@ -335,37 +332,37 @@ class SB(object):
                 dis_cost += 1.8555*( 1 - reduction_amount[t]/100 )
                 if desal_capac[t] > 0:
                     dis_cost += 0.240
-    
+
                 if l3_capac[t] == 20:
                     dis_cost += - 0.1126
                 if l3_capac[t] == 50:
                     dis_cost += - 0.1696
-    
+
                 if l6_capac[t] == 20:
                     dis_cost += - 0.0149
                 if l6_capac[t] == 50:
                     dis_cost += - 0.0163
-    
+
                 if l2_capac[t] == 20:
-                    dis_cost += 0.0121
+                    dis_cost +=  0.0121 #minus in individual, plus in reg
                 if l2_capac[t] == 50:
                     dis_cost += - 0.0199
-    
+
                 if l4_capac[t] == 20:
                     dis_cost += - 0.0119
                 if l4_capac[t] == 50:
                     dis_cost += - 0.0127
-    
+
                 if l5_capac[t] == 20:
                     dis_cost += - 0.0195
                 if l5_capac[t] == 50:
                     dis_cost += - 0.0125
-    
+
                 if l7_capac[t] == 20:
                     dis_cost += - 0.0096
                 if l7_capac[t] == 50:
                     dis_cost += - 0.0151
-    
+
                 if l1_capac[t] == 20:
                     dis_cost += 0.0014
                 if l1_capac[t] == 50:
@@ -383,7 +380,7 @@ class SB(object):
 
 
     
-    
+
     def planning_policy(self, policy, t, installed_capacity, opex, capex, uc, tech_cap, tech_loc, tech_lifespan):
         i = 0
         H = self.H
@@ -407,13 +404,12 @@ class SB(object):
             i += 1
     
         return installed_capacity, opex, capex, uc, tech_cap, tech_loc, tech_lifespan
-    
-    
+
     def location_track(self, policy, t, uc, tech_loc, tech_cap):
         i = 0
         H = self.H
         for action in self.action_name:
-            
+
             if policy == action:
                 dep   = int(self.t_depl[i])
                 if t+dep < H:
@@ -421,15 +417,15 @@ class SB(object):
                     tech_cap[t + dep : H]           = float(self.capacity[i])
                     tech_loc[t : H]                 = 1
             i += 1
-    
+
         return  uc, tech_loc, tech_cap
-    
+
     def cost_from_action(self, capac, act_str):
         t = 1
         H = self.H
         tot_capex = 0
         tot_opex = 0
-        
+
         if sum(capac)>0:
             while t < H:
                 if capac[t] > capac[t-1]: #a construction
@@ -457,17 +453,17 @@ class SB(object):
                         tech_life += 1
                         T += 1
                     tot_opex += opex*tech_life
-                    if all( [t+tech_life >= H, tech_life < 240] ): 
+                    if all( [t+tech_life >= H, tech_life < 240] ):
                         tot_capex += capex*(tech_life/480) #reduce end-of-horizon problem
                     else:
                         tot_capex += capex
                     if tech_life > 240:
                         tot_capex += (tech_life - 240)*(capex/240)
                     t += tech_life
-                t += 1    
+                t += 1
         return tot_capex, tot_opex
-    
-    def tech_cost(self, desal_capac, wwtp_capac, l1_capac, l2_capac, l3_capac, l4_capac, l5_capac, l6_capac, l7_capac):     
+
+    def tech_cost(self, desal_capac, wwtp_capac, l1_capac, l2_capac, l3_capac, l4_capac, l5_capac, l6_capac, l7_capac):
         capex = np.zeros(9)
         opex = np.zeros(9)
         capex[0], opex[0] = self.cost_from_action(desal_capac, 'desal')
@@ -479,10 +475,10 @@ class SB(object):
         capex[6], opex[6] = self.cost_from_action(l5_capac, 'dec')
         capex[7], opex[7] = self.cost_from_action(l6_capac, 'dec')
         capex[8], opex[8] = self.cost_from_action(l7_capac, 'dec')
-                
-                
+
+
         return sum(capex), sum(opex)
-                    
+
     def conservation_measures(self, t, reduction_amount, policy, Location):
         i = 0
         for action in self.action_name:
@@ -538,14 +534,14 @@ class SB(object):
         reduction_amount[Tf:] = [max( exist_red, min(final_rr, exist_red + final_rr)) for exist_red in reduction_amount[Tf:] ]
     
         return reduction_amount
-    
+
     def compute_sf_cost(self, rc, rgi, rswp, r_tunnel):
         # surface water
         sw_c = sum( [(c1+c2+c3)*self.nom_cost_sw for c1, c2, c3 in zip(rc, rgi, r_tunnel)] )
         # swp
         swp_c = sum( [ cs * self.nom_cost_rs for cs in rswp ] )
         return sw_c + swp_c
-    
+
     def compute_sf_stepcost(self, rc, rgi, r_tunnel, rswp, market):
         # surface water
         sw_c = (rc+rgi+r_tunnel)*self.nom_cost_sw 
@@ -554,46 +550,45 @@ class SB(object):
         # market
         mark_swp = market * self.market_cost 
         return sw_c + swp_c + mark_swp
-    
-    
+
     def compute_cost_traj(self, rc, rgi, rswp, r_tunnel):
         # surface water
         sw_c = [(c1+c2+c3)*self.nom_cost_sw for c1, c2, c3 in zip(rc, rgi, r_tunnel)]
         # swp
         swp_c = [ cs * self.nom_cost_rs for cs in rswp ]
-    
+
         csurf = [c1+c2 for c1,c2 in zip(sw_c, swp_c)]
         return csurf
-    
+
     def compute_deltas(self, t, sc, l):
         if t<l:
             delta = 0
         else:
             delta = min( 0, sc[t]  - sc[t-l]) 
         return delta
-    
+
     def compute_alloc(self, t, nc, y):
         curr_y = int(np.floor(t/12)) - 1 #
         y=y-1 
         if (t%12)>=9: #if it's october or later
             curr_y = curr_y + 1
-    
+
         if any( [curr_y == -1, all( [curr_y == y, y == 0] ) ]): #initial months have full allocation
             alloc = 8800
             return alloc
-    
+
         if curr_y<=y:
             prev  = sum( np.ones(y-curr_y)*8800 )
             alloc = ( prev + np.sum(nc[0:curr_y])  )/y
             return alloc
-    
+
         else:
             if y == 0:
                 alloc = nc[curr_y]
             else:
                 alloc = np.mean(nc[curr_y-y:curr_y])
             return alloc
-    
+
     def compute_stor(self, sc):
         if len(sc) < 12:
             st = np.mean(sc)
