@@ -184,6 +184,7 @@ class SBsim(object):
 
         actions_list      = []
         indicators_list   = []
+        final_demand      = []
 
         # binary value that indicates whether the plant location is occupied by a plant (1) or not (0)
         Location = {'Desal': 0, 'WWTP': 0, 'L1':0, 'L2':0, 'L3':0, 'L4':0,
@@ -338,7 +339,8 @@ class SBsim(object):
 
             mean_demand = sum(self.demand)/len(self.demand)
             dem =  self.demand[(t%12)] - mean_demand*(reduction_amount[t]/100 )
-            current_curtail = mean_demand*( reduction_amount[t]/100 )
+            final_demand.append(dem)
+            current_curtail.append(mean_demand*( reduction_amount[t]/100 ))
             d = max( 0, dem - installed_capacity[t] - md[t] )
 
             SS = sc[-1] + sgi[-1] + sswp[-1]
@@ -445,6 +447,7 @@ class SBsim(object):
         
         
 ######## write vectors to output
+        log.curtailed_demand = final_demand
         log.def_penalty = def_penalty
         log.demand = self.demand
         log.capacity = installed_capacity

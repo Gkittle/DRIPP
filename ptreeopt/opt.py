@@ -78,6 +78,7 @@ class PTreeOpt(object):
         self.multiobj = multiobj
         self.epsilons = epsilons
         self.num_policies = num_policies
+        self.tree_parallels = [[0,3],[1,4],[2,5]] #trees that have to have the same actions
 
         if feature_names is not None and\
            len(feature_names) != len(feature_bounds):
@@ -358,41 +359,23 @@ class PTreeOpt(object):
     def check_actions(self, individual):
         # make sure remove policy has no additional actions as corresponding build tree
 
-        action_b0 = []
-        for node in individual[0].L:
-            if node.is_feature == False:
-                action_b0.append(node.value)
-        b0 = set(np.unique(action_b0))
+        for pair in self.tree_parallels:
+            action_b = []
+            for node in individual[pair[0]].L:
+                if node.is_feature == False:
+                    action_b.append(node.value)
+            b = set(np.unique(action_b))
 
-        action_r0 = []        
-        for node in individual[3].L:
-            if node.is_feature == False:
-                action_r0.append(node.value)
-        r0 = set(np.unique(action_r0))
-        
-        if b0 != r0 : 
-            individual[3] = self.random_rm_tree(individual[0])
-            
-        action_b1 = []
-        for node in individual[1].L:
-            if node.is_feature == False:
-                action_b1.append(node.value)
-        b1 = set(np.unique(action_b1))
+            action_r = []
+            for node in individual[pair[1]].L:
+                if node.is_feature == False:
+                    action_r.append(node.value)
+            r = set(np.unique(action_r))
 
-        action_r1 = []        
-        for node in individual[4].L:
-            if node.is_feature == False:
-                action_r1.append(node.value)
-        r1 = set(np.unique(action_r1))
-        
-        if b1 != r1 : 
-            individual[4] = self.random_rm_tree(individual[1])
+            if b != r:
+                individual[pair[1]] = self.random_rm_tree(individual[pair[0]])
             
         return individual
-                
-        
-                
-
 
     def random_individual(self):
         ensemble = [self.random_tree(action_type = i) for i in range(3)]
