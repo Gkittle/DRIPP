@@ -125,6 +125,7 @@ class SBsim(object):
         log.market_water     = []
         log.curtailment_cost = []
         log.sri              = []
+        log.policy_triggered = []
 
         complete_rules_cen   = []
         complete_rules_dec   = []
@@ -181,6 +182,7 @@ class SBsim(object):
             surface_cost      = 0
             curtailment_cost  = 0
             count             = 5
+            policy_triggered  = []
     
     
             # binary value that indicates whether the plant location is occupied by a plant (1) or not (0) or if a level of curtailment is triggered
@@ -220,6 +222,8 @@ class SBsim(object):
                 policy_rmc, rules_rmc = P[3].evaluate(indicators) #decomm central
                 policy_rmd, rules_rmd = P[4].evaluate(indicators) #decomm decentral
                 policy_rco, rules_rco = P[5].evaluate(indicators) #decomm curtail
+
+                policy_triggered.append([policy_cen,policy_dec,policy_con,policy_rmc,policy_rmd,policy_rco])
 
                 if len(rules_cen) > len(complete_rules_cen):
                     complete_rules_cen = rules_cen
@@ -314,24 +318,28 @@ class SBsim(object):
                         elif l1_capac[t]>0:
                             l1_capac[t+1:H] = 0 
                             l1_loc[t+1:H] = 0
-                
-                # curtailment decisions
-                if any( [policy_con=='d1', policy_con=='d2', policy_con=='d3'] ):
-                    reduction_amount = self.conservation_measures(t, reduction_amount, policy_con, Location)
-                    if policy_con == 'd1':
-                        Location['D1'] = 1
-                    elif policy_con == 'd2':
-                        Location['D2'] = 1
-                    elif policy_con == 'd3':
-                        Location['D3'] = 1
 
-                if any( [policy_rco =='d1', policy_rco =='d2', policy_rco=='d3'] ):
-                    if all( [Location['D1'] == 1, policy_rco =='d1']):
-                        reduction_amount = self.conservation_measures_remove(t, reduction_amount, policy_rco, Location)
-                    elif all([Location['D2'] == 1, policy_rco == 'd2']):
-                        reduction_amount = self.conservation_measures_remove(t, reduction_amount, policy_rco, Location)
-                    elif all([Location['D3'] == 1, policy_rco == 'd3']):
-                        reduction_amount = self.conservation_measures_remove(t, reduction_amount, policy_rco, Location)
+                if any([policy_con=='d1', policy_con=='d2', policy_con=='d3', policy_rco =='d1', policy_rco =='d2', policy_rco=='d3']):
+
+                    # curtailment decisions
+                    if any( [policy_con=='d1', policy_con=='d2', policy_con=='d3'] ):
+                        if all([policy_con == 'd1', policy_rco != 'd1']):
+                            reduction_amount = self.conservation_measures(t, reduction_amount, policy_con, Location)
+                            Location['D1'] = 1
+                        elif all([policy_con == 'd2', policy_rco != 'd2']):
+                            reduction_amount = self.conservation_measures(t, reduction_amount, policy_con, Location)
+                            Location['D2'] = 1
+                        elif all([policy_con == 'd3', policy_rco != 'd3']):
+                            reduction_amount = self.conservation_measures(t, reduction_amount, policy_con, Location)
+                            Location['D3'] = 1
+
+                    if any( [policy_rco =='d1', policy_rco =='d2', policy_rco=='d3'] ):
+                        if all( [Location['D1'] == 1, policy_rco =='d1']):
+                            reduction_amount = self.conservation_measures_remove(t, reduction_amount, policy_rco, Location)
+                        elif all([Location['D2'] == 1, policy_rco == 'd2']):
+                            reduction_amount = self.conservation_measures_remove(t, reduction_amount, policy_rco, Location)
+                        elif all([Location['D3'] == 1, policy_rco == 'd3']):
+                            reduction_amount = self.conservation_measures_remove(t, reduction_amount, policy_rco, Location)
 
                 installed_capacity[t] = sum([desal_capac[t], wwtp_capac[t], l1_capac[t], l2_capac[t], l3_capac[t], l4_capac[t], l5_capac[t], l6_capac[t], l7_capac[t]])
                     
@@ -340,9 +348,9 @@ class SBsim(object):
                 
                 # demand from surface water = total demand - tech installed and curtailment
                 mean_demand = sum(self.demand)/len(self.demand)
-                dem =  self.demand[(t%12)] - mean_demand*(reduction_amount[t]/100 )
+                dem =  self.demand[(t%12)] - mean_demand*(reduction_amount[t])
                 final_demand.append(dem)
-                current_curtail = mean_demand*( reduction_amount[t]/100 )
+                current_curtail = mean_demand*( reduction_amount[t])
                 d = max( 0, dem - installed_capacity[t] - md[t] )
 
                 SS = sc[-1] + sgi[-1] + sswp[-1]
@@ -473,6 +481,7 @@ class SBsim(object):
         log.thresh_rmc.append([rr[1] for rr in complete_rules_rmc])
         log.thresh_rmd.append([rr[1] for rr in complete_rules_rmd])
         log.thresh_rco.append([rr[1] for rr in complete_rules_rco])
+        log.policy_triggered = policy_triggered
         
         return log
 
