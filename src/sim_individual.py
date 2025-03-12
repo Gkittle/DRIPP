@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Oct 15 10:37:27 2021
-
-@author: martazaniolo
-
 This script contains 
 
             # n: inflow
@@ -50,7 +46,7 @@ class SBsim(object):
         self.mds   = np.loadtxt('data/Inflow_Individual_Scenarios/mission_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
         self.sri12 = np.loadtxt('data/Inflow_Individual_Scenarios/gibrSRI12_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
         self.sri36 = np.loadtxt('data/Inflow_Individual_Scenarios/gibrSRI36_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
-        self.dem_rep     = mat.repmat(self.demand, 1, self.Ny)[0]
+        self.nsim  = 1
 
         actions = []
         for act in action_name:
@@ -68,7 +64,7 @@ class SBsim(object):
         self.curtailment_unitcost = curtailment_unitcost
 
 
-    def simulate(self, P, s):
+    def simulate(self, P, scenario):
 
         self.H  = self.gibraltar.H 
         H       = self.H
@@ -80,6 +76,14 @@ class SBsim(object):
         nswps   = self.swp.inflow
 
 
+        nc = []
+        ngi = []
+        nswp = []
+        md = []
+        sri12 = []
+        sri36 = []
+        J = []
+
 ######## prepare output fields
         log                  = log_results()
         log.t                = []
@@ -89,6 +93,7 @@ class SBsim(object):
         log.rules_con        = []
         log.rules_rmc        = []
         log.rules_rmd        = []
+        log.rules_rco        = []
         log.capacity         = []
         log.uc               = []
         log.residualdeficit  = []
@@ -114,6 +119,7 @@ class SBsim(object):
         log.thresh_con       = []
         log.thresh_rmc       = []
         log.thresh_rmd       = []
+        log.thresh_rco       = []
         log.num_inf          = []
         log.capac_inf        = []
         log.market_water     = []
@@ -125,328 +131,322 @@ class SBsim(object):
         complete_rules_con   = []
         complete_rules_rmc   = []
         complete_rules_rmd   = []
+        complete_rules_rco   = []
+        indicators_list      = []
+        final_demand         = []
+        def_penalty_         = []
+        
+        for _ in range(self.nsim):            
+            #s should be randomized when selecting from the drought scenarios?
 
-######## initialize vectors for simulation
-        nc = []
-        ngi = []
-        nswp = []
-        md = []
-        sri12 = []
-        sri36 = []
-
-        nc    = list( ncs[s,:] )
-        ngi   = list( ngis[s,:] )
-        nswp  = list( nswps[s,:] )
-        md    = list( self.mds[s,:] )
-        sri12 = list( self.sri12[s,:] ) 
-        sri36 = list( self.sri36[s,:] )
+            nc    = list( ncs[scenario,:] )
+            ngi   = list( ngis[scenario,:] )
+            nswp  = list( nswps[scenario,:] )
+            md    = list( self.mds[scenario,:] )
+            sri12 = list( self.sri12[scenario,:] ) 
+            sri36 = list( self.sri36[scenario,:] )
 
 
-        sc      = [self.cachuma.s0]
-        sgi     = [self.gibraltar.s0]
-        sswp    = [self.swp.s0]
-
-        rc      = [-999]
-        rgi     = [-999]
-        rswp    = [-999]
-
-        opex     = np.zeros(H)
-        capex    = np.zeros(H)
-        installed_capacity = np.zeros(H)
-        reduction_amount = np.zeros(H) #curtailment measures
-        desal_capac  = np.zeros(H)
-        wwtp_capac   = np.zeros(H) # waste water treat plant for centralized P and NP reuse
-        l1_capac     = np.zeros(H) # location of decentralized P and NP
-        l2_capac     = np.zeros(H)
-        l3_capac     = np.zeros(H)
-        l4_capac     = np.zeros(H)
-        l5_capac     = np.zeros(H)
-        l6_capac     = np.zeros(H)
-        l7_capac     = np.zeros(H)
-
-        desal_loc    = np.zeros(H)
-        wwtp_loc     = np.zeros(H)
-        l1_loc       = np.zeros(H)
-        l2_loc       = np.zeros(H)
-        l3_loc       = np.zeros(H)
-        l4_loc       = np.zeros(H)
-        l5_loc       = np.zeros(H)
-        l6_loc       = np.zeros(H)
-        l7_loc       = np.zeros(H)
-
-        def_penalty       = []
-        uc_capac          = np.zeros(H)
-        dis_cost          = []
-        market            = []
-        curtailment_cost  = []
-        current_curtail   = []
-        count             = 5
-
-        actions_list      = []
-        indicators_list   = []
-        final_demand      = []
-
-        # binary value that indicates whether the plant location is occupied by a plant (1) or not (0)
-        Location = {'Desal': 0, 'WWTP': 0, 'L1':0, 'L2':0, 'L3':0, 'L4':0,
-                     'L5':0, 'L6':0, 'L7':0, 'D1':0, 'D2':0, 'D3':0}
-     
-     
-        for t in range(H):
-    ############ compute value of indicators at time T 
-            storage_t    = self.compute_stor(sc + sswp + sgi)
+            sc      = [self.cachuma.s0]
+            sgi     = [self.gibraltar.s0]
+            sswp    = [self.swp.s0]
     
-            allocat12t   = self.compute_alloc(t, nc+nswp, 1)
-            allocat36t   = self.compute_alloc(t, nc+nswp, 3)
-            allocat60t   = self.compute_alloc(t, nc+nswp, 5)
-     
-            delta12t     = self.compute_deltas(t, sc, 12)
-            delta36t     = self.compute_deltas(t, sc, 36)
-            delta60t     = self.compute_deltas(t, sc, 60)
-     
-            sri12t       = sri12[t]
-            sri36t       = sri36[t]
-     
-            installed    = installed_capacity[t]
-            und_constr   = uc_capac[t]
-            curtail_t    = reduction_amount[t]
-     
-            indicators = [storage_t, sri12t, sri36t,
-                           allocat12t, allocat36t, allocat60t,
-                           delta12t, delta36t, delta60t,
-                           installed, und_constr, curtail_t]
-     
-    ############# extract action from policy 
-            policy_cen, rules_cen = P[0].evaluate(indicators) #commiss central
-            policy_dec, rules_dec = P[1].evaluate(indicators) #commiss decentral
-            policy_con, rules_con = P[2].evaluate(indicators) #commiss curtail
-            policy_rmc, rules_rmc = P[3].evaluate(indicators) #decomm central
-            policy_rmd, rules_rmd = P[4].evaluate(indicators) #decomm decentral
-            policy_rco, rules_rco = P[5].evaluate(indicators) #decomm curtail
+            opex     = np.zeros(H)
+            capex    = np.zeros(H)
+            installed_capacity = np.zeros(H)
+            reduction_amount = np.zeros(H) #curtailment measures
+            desal_capac  = np.zeros(H)
+            wwtp_capac   = np.zeros(H) # waste water treat plant for centralized P and NP reuse
+            l1_capac     = np.zeros(H) # location of decentralized P and NP
+            l2_capac     = np.zeros(H)
+            l3_capac     = np.zeros(H)
+            l4_capac     = np.zeros(H)
+            l5_capac     = np.zeros(H)
+            l6_capac     = np.zeros(H)
+            l7_capac     = np.zeros(H)
+
+            desal_loc    = np.zeros(H)
+            wwtp_loc     = np.zeros(H)
+            l1_loc       = np.zeros(H)
+            l2_loc       = np.zeros(H)
+            l3_loc       = np.zeros(H)
+            l4_loc       = np.zeros(H)
+            l5_loc       = np.zeros(H)
+            l6_loc       = np.zeros(H)
+            l7_loc       = np.zeros(H)
+    
+            def_penalty       = 0
+            uc_capac          = np.zeros(H)
+            dis_cost          = 0
+            surface_cost      = 0
+            curtailment_cost  = 0
+            count             = 5
+    
+    
+            # binary value that indicates whether the plant location is occupied by a plant (1) or not (0) or if a level of curtailment is triggered
+            Location = {'Desal': 0, 'WWTP': 0, 'L1':0, 'L2':0, 'L3':0, 'L4':0,
+                        'L5':0, 'L6':0, 'L7':0, 'D1':0, 'D2':0, 'D3':0}
+    
+    
+            for t in range(H):
+   ############# compute value of indicators at time T 
+                storage_t    = self.compute_stor(sc + sswp + sgi)
+    
+                allocat12t   = self.compute_alloc(t, nc+nswp, 1)
+                allocat36t   = self.compute_alloc(t, nc+nswp, 3)
+                allocat60t   = self.compute_alloc(t, nc+nswp, 5)
+    
+                delta12t     = self.compute_deltas(t, sc, 12) #delta storage over 1 year
+                delta36t     = self.compute_deltas(t, sc, 36)
+                delta60t     = self.compute_deltas(t, sc, 60)
+    
+                sri12t       = sri12[t]
+                sri36t       = sri36[t]
+    
+                installed    = installed_capacity[t]
+                und_constr   = uc_capac[t]
+                curtail_t    = reduction_amount[t]
+    
+                indicators = [storage_t, sri12t, sri36t,
+                              allocat12t, allocat36t, allocat60t,
+                              delta12t, delta36t, delta60t,
+                              installed, und_constr, curtail_t]
+                indicators_list.append(indicators)
+    
+   ############## extract action from policy 
+                policy_cen, rules_cen = P[0].evaluate(indicators) #commiss central
+                policy_dec, rules_dec = P[1].evaluate(indicators) #commiss decentral
+                policy_con, rules_con = P[2].evaluate(indicators) #commiss curtail
+                policy_rmc, rules_rmc = P[3].evaluate(indicators) #decomm central
+                policy_rmd, rules_rmd = P[4].evaluate(indicators) #decomm decentral
+                policy_rco, rules_rco = P[5].evaluate(indicators) #decomm curtail
+
+                if len(rules_cen) > len(complete_rules_cen):
+                    complete_rules_cen = rules_cen
+                if len(rules_dec) > len(complete_rules_dec):
+                    complete_rules_dec = rules_dec
+                if len(rules_con) > len(complete_rules_con):
+                    complete_rules_con = rules_con
+                if len(rules_rmc) > len(complete_rules_rmc):
+                    complete_rules_rmc = rules_rmc
+                if len(rules_rmd) > len(complete_rules_rmd):
+                    complete_rules_rmd = rules_rmd
+                if len(rules_rco) > len(complete_rules_rco):
+                    complete_rules_rco = rules_rco
                 
+    
+                Location['Desal']  = desal_loc[t]
+                Location['WWTP']   = wwtp_loc[t]
+                Location['L1']     = l1_loc[t]
+                Location['L2']     = l2_loc[t]
+                Location['L3']     = l3_loc[t]
+                Location['L4']     = l4_loc[t]
+                Location['L5']     = l5_loc[t]
+                Location['L6']     = l6_loc[t]
+                Location['L7']     = l7_loc[t]
+                count += 1
 
-            Location['Desal']  = desal_loc[t]
-            Location['WWTP']   = wwtp_loc[t]
-            Location['L1']     = l1_loc[t]
-            Location['L2']     = l2_loc[t]
-            Location['L3']     = l3_loc[t]
-            Location['L4']     = l4_loc[t]
-            Location['L5']     = l5_loc[t]
-            Location['L6']     = l6_loc[t]
-            Location['L7']     = l7_loc[t]
-            count += 1
+   ############## read policy decisions and implement it in model
+                # centralized decisions
+                if any( [policy_cen=='SW200', policy_cen=='SW300', policy_cen=='SW400', policy_cen=='SW500'] ):
+                    if Location['Desal'] == 0:
+                        uc_capac, desal_loc, desal_capac = self.location_track(policy_cen, t, uc_capac, desal_loc, desal_capac)
 
-            if any( [policy_cen=='SW200', policy_cen=='SW300', policy_cen=='SW400', policy_cen=='SW500'] ):
-                if Location['Desal'] == 0:
-                    uc_capac, desal_loc, desal_capac = self.location_track(policy_cen, t, uc_capac, desal_loc, desal_capac)
+                if desal_capac[t]>0:
+                    if any( [policy_rmc=='SW200', policy_rmc=='SW300', policy_rmc=='SW400', policy_rmc=='SW500'] ):
+                        desal_capac[t+1:H] = 0 #deactivate desal
+                        desal_loc[t+1:H] = 0
 
-            if desal_capac[t]>0:
-                if any( [policy_rmc=='SW200', policy_rmc=='SW300', policy_rmc=='SW400', policy_rmc=='SW500'] ):
-                    desal_capac[t+1:H] = 0 #deactivate desal
-                    desal_loc[t+1:H] = 0
+                if any( [policy_cen=='PR200', policy_cen=='PR300', policy_cen=='PR400', policy_cen=='PR500', policy_cen=='NPR100'] ):
+                    if Location['WWTP'] == 0:
+                        uc_capac, wwtp_loc, wwtp_capac = self.location_track(policy_cen, t, uc_capac, wwtp_loc, wwtp_capac)
 
-            if any( [policy_cen=='PR200', policy_cen=='PR300', policy_cen=='PR400', policy_cen=='PR500', policy_cen=='NPR100'] ):
-                if Location['WWTP'] == 0:
-                    uc_capac, wwtp_loc, wwtp_capac = self.location_track(policy_cen, t, uc_capac, wwtp_loc, wwtp_capac)
+                if wwtp_capac[t]>0:
+                    if any( [policy_rmc=='PR200', policy_rmc=='PR300', policy_rmc=='PR400', policy_rmc=='PR500', policy_rmc=='NPR100'] ):
+                        wwtp_capac[t+1:H] = 0 #deactivate
+                        wwtp_loc[t+1:H] = 0
 
-            if wwtp_capac[t]>0:
-                if any( [policy_rmc=='PR200', policy_rmc=='PR300', policy_rmc=='PR400', policy_rmc=='PR500', policy_rmc=='NPR100'] ):
-                    wwtp_capac[t+1:H] = 0 #deactivate
-                    wwtp_loc[t+1:H] = 0
+                # decentralized decisions        
+                if any( [policy_dec=='PR50', policy_dec=='NPR20'] ):
+                    if count > 5:
+                        if Location['L1'] == 0:
+                            uc_capac, l1_loc, l1_capac = self.location_track(policy_dec, t, uc_capac, l1_loc, l1_capac)
+                            count = 0
+                        elif Location['L2'] == 0:
+                            uc_capac, l2_loc, l2_capac = self.location_track(policy_dec, t, uc_capac, l2_loc, l2_capac)
+                            count = 0
+                        elif Location['L3'] == 0:
+                            uc_capac, l3_loc, l3_capac = self.location_track(policy_dec, t, uc_capac, l3_loc, l3_capac)
+                            count = 0
+                        elif Location['L4'] == 0:
+                            uc_capac, l4_loc, l4_capac = self.location_track(policy_dec, t, uc_capac, l4_loc, l4_capac)
+                            count = 0
+                        elif Location['L5'] == 0:
+                            uc_capac, l5_loc, l5_capac = self.location_track(policy_dec, t, uc_capac, l5_loc, l5_capac)
+                            count = 0
+                        elif Location['L6'] == 0:
+                            uc_capac, l6_loc, l6_capac = self.location_track(policy_dec, t, uc_capac, l6_loc, l6_capac)
+                            count = 0
+                        elif Location['L7'] == 0:
+                            uc_capac, l7_loc, l7_capac = self.location_track(policy_dec, t, uc_capac, l7_loc, l7_capac)
+                            count = 0
+    
+                if l1_loc[t]>0: #at least one distributed plant
+                    if any( [policy_rmd=='PR50', policy_rmd=='NPR20'] ):
+                        if l7_capac[t]>0:
+                            l7_capac[t+1:H] = 0
+                            l7_loc[t+1:H] = 0
+                        elif l6_capac[t]>0:
+                            l6_capac[t+1:H] = 0
+                            l6_loc[t+1:H] = 0
+                        elif l5_capac[t]>0:
+                            l5_capac[t+1:H] = 0 
+                            l5_loc[t+1:H] = 0
+                        elif l4_capac[t]>0:
+                            l4_capac[t+1:H] = 0 
+                            l4_loc[t+1:H] = 0
+                        elif l3_capac[t]>0:
+                            l3_capac[t+1:H] = 0 
+                            l3_loc[t+1:H] = 0
+                        elif l2_capac[t]>0:
+                            l2_capac[t+1:H] = 0 
+                            l2_loc[t+1:H] = 0
+                        elif l1_capac[t]>0:
+                            l1_capac[t+1:H] = 0 
+                            l1_loc[t+1:H] = 0
+                
+                # curtailment decisions
+                if any( [policy_con=='d1', policy_con=='d2', policy_con=='d3'] ):
+                    reduction_amount = self.conservation_measures(t, reduction_amount, policy_con, Location)
+                    if policy_con == 'd1':
+                        Location['D1'] = 1
+                    elif policy_con == 'd2':
+                        Location['D2'] = 1
+                    elif policy_con == 'd3':
+                        Location['D3'] = 1
 
+                if any( [policy_rco =='d1', policy_rco =='d2', policy_rco=='d3'] ):
+                    if all( [Location['D1'] == 1, policy_rco =='d1']):
+                        reduction_amount = self.conservation_measures_remove(t, reduction_amount, policy_rco, Location)
+                    elif all([Location['D2'] == 1, policy_rco == 'd2']):
+                        reduction_amount = self.conservation_measures_remove(t, reduction_amount, policy_rco, Location)
+                    elif all([Location['D3'] == 1, policy_rco == 'd3']):
+                        reduction_amount = self.conservation_measures_remove(t, reduction_amount, policy_rco, Location)
 
-            if any( [policy_dec=='PR50', policy_dec=='NPR20'] ):
-                if count > 5:
-                    if Location['L1'] == 0:
-                        uc_capac, l1_loc, l1_capac = self.location_track(policy_dec, t, uc_capac, l1_loc, l1_capac)
-                        count = 0
-                    elif Location['L2'] == 0:
-                        uc_capac, l2_loc, l2_capac = self.location_track(policy_dec, t, uc_capac, l2_loc, l2_capac)
-                        count = 0
-                    elif Location['L3'] == 0:
-                        uc_capac, l3_loc, l3_capac = self.location_track(policy_dec, t, uc_capac, l3_loc, l3_capac)
-                        count = 0
-                    elif Location['L4'] == 0:
-                        uc_capac, l4_loc, l4_capac = self.location_track(policy_dec, t, uc_capac, l4_loc, l4_capac)
-                        count = 0
-                    elif Location['L5'] == 0:
-                        uc_capac, l5_loc, l5_capac = self.location_track(policy_dec, t, uc_capac, l5_loc, l5_capac)
-                        count = 0
-                    elif Location['L6'] == 0:
-                        uc_capac, l6_loc, l6_capac = self.location_track(policy_dec, t, uc_capac, l6_loc, l6_capac)
-                        count = 0
-                    elif Location['L7'] == 0:
-                        uc_capac, l7_loc, l7_capac = self.location_track(policy_dec, t, uc_capac, l7_loc, l7_capac)
-                        count = 0
+                installed_capacity[t] = sum([desal_capac[t], wwtp_capac[t], l1_capac[t], l2_capac[t], l3_capac[t], l4_capac[t], l5_capac[t], l6_capac[t], l7_capac[t]])
+                    
+                
+   ############## simulation of surface water reservoirs
+                
+                # demand from surface water = total demand - tech installed and curtailment
+                mean_demand = sum(self.demand)/len(self.demand)
+                dem =  self.demand[(t%12)] - mean_demand*(reduction_amount[t]/100 )
+                final_demand.append(dem)
+                current_curtail = mean_demand*( reduction_amount[t]/100 )
+                d = max( 0, dem - installed_capacity[t] - md[t] )
 
-            if l1_loc[t]>0: #at least one distr
-                if any( [policy_rmd=='PR50', policy_rmd=='NPR20'] ):
-                    if l7_capac[t]>0:
-                        l7_capac[t+1:H] = 0
-                        l7_loc[t+1:H] = 0
-                    elif l6_capac[t]>0:
-                        l6_capac[t+1:H] = 0
-                        l6_loc[t+1:H] = 0
-                    elif l5_capac[t]>0:
-                        l5_capac[t+1:H] = 0 #deactivate
-                        l5_loc[t+1:H] = 0
-                    elif l4_capac[t]>0:
-                        l4_capac[t+1:H] = 0 #deactivate
-                        l4_loc[t+1:H] = 0
-                    elif l3_capac[t]>0:
-                        l3_capac[t+1:H] = 0 #deactivate
-                        l3_loc[t+1:H] = 0
-                    elif l2_capac[t]>0:
-                        l2_capac[t+1:H] = 0 #deactivate
-                        l2_loc[t+1:H] = 0
-                    elif l1_capac[t]>0:
-                        l1_capac[t+1:H] = 0 #deactivate
-                        l1_loc[t+1:H] = 0
-
-            # curtailment decisions
-            if any( [policy_con=='d1', policy_con=='d2', policy_con=='d3'] ):
-                reduction_amount = self.conservation_measures(t, reduction_amount, policy_con, Location)
-                if policy_con == 'd1':
-                    Location['D1'] = 1
-                elif policy_con == 'd2':
-                    Location['D2'] = 1
-                elif policy_con == 'd3':
-                    Location['D3'] = 1
-
-            if any( [policy_rco =='d1', policy_rco =='d2', policy_rco=='d3'] ):
-                if all( [Location['D1'] == 1, policy_rco =='d1']):
-                    reduction_amount = self.conservation_measures_remove(t, reduction_amount, policy_rco, Location)
-                elif all([Location['D2'] == 1, policy_rco == 'd2']):
-                    reduction_amount = self.conservation_measures_remove(t, reduction_amount, policy_rco, Location)
-                elif all([Location['D3'] == 1, policy_rco == 'd3']):
-                    reduction_amount = self.conservation_measures_remove(t, reduction_amount, policy_rco, Location)
-
-            installed_capacity[t] = sum([desal_capac[t], wwtp_capac[t], l1_capac[t], l2_capac[t], l3_capac[t], l4_capac[t], l5_capac[t], l6_capac[t], l7_capac[t]])
-
-            log.t.append(t)
-            actions_list.append([policy_cen, policy_dec, policy_con, policy_rmc, policy_rmd] )
-            indicators_list.append(indicators)
-
-            if len(rules_cen) > len(complete_rules_cen):
-                complete_rules_cen = rules_cen
-            if len(rules_dec) > len(complete_rules_dec):
-                complete_rules_dec = rules_dec
-            if len(rules_con) > len(complete_rules_con):
-                complete_rules_con = rules_con
-            if len(rules_rmc) > len(complete_rules_rmc):
-                complete_rules_rmc = rules_rmc
-            if len(rules_rmd) > len(complete_rules_rmd):
-                complete_rules_rmd = rules_rmd
-
-            mean_demand = sum(self.demand)/len(self.demand)
-            dem =  self.demand[(t%12)] - mean_demand*(reduction_amount[t]/100 )
-            final_demand.append(dem)
-            current_curtail.append(mean_demand*( reduction_amount[t]/100 ))
-            d = max( 0, dem - installed_capacity[t] - md[t] )
-
-            SS = sc[-1] + sgi[-1] + sswp[-1]
-            uc  = sc[-1]/SS #0.6
-            ugi = sgi[-1]/SS  #0.3
-            uswp = sswp[-1]/SS
+                SS = sc[-1] + sgi[-1] + sswp[-1]
+                uc  = sc[-1]/SS 
+                ugi = sgi[-1]/SS
+                uswp = sswp[-1]/SS
+                
+                if uswp*d > self.swp.max_release:
+                    while uswp*d > self.swp.max_release:
+                        uswp -= 0.05
+                        uc += 0.04
+                        ugi += 0.01
+    
+                # surface water allocation in cachuma swp and comes in the form of an annual allocation
+                # distributed in the month of October for Cachuma and May for SWP
+                if (t%12)==9: # October
+                    nc_ = nc[int((t-9)/self.T)]
+                else:
+                    nc_ = 0
+                    
+                if (t%12)==4: #May
+                    nswp_ = nswp[int((t-4)/self.T)]
+                else:
+                    nswp_ = 0
+                    
+                    
+                # mass balance of water reservoirs
+                s_, r_c  = self.cachuma.integration(sc[t], uc, nc_, d)
+                sc.append(s_)
+    
+                s_, r_gi  = self.gibraltar.integration(sgi[t], ugi, ngi[t], d)
+                sgi.append(s_)
+    
+                s_, r_swp  = self.swp.integration(sswp[t], uswp, nswp_, d)
+                sswp.append(s_)
+                
+                
+                # calculation of deficit for penalty
+                deficit = max( 0, dem - r_swp - r_c - r_gi - md[t] - installed_capacity[t]) #altered demand to be the curtailed demand
+                if deficit < 1e-10:
+                    deficit = 0
+                            
+                # restricted purchase of market water to mitigate the deficit 
+                max_market = max( 0, self.max_swp_market - r_swp )
+                market = min( max_market, deficit ) 
             
-            if uswp*d > self.swp.max_release:
-                while uswp*d > self.swp.max_release:
-                    uswp -= 0.05
-                    uc += 0.04
-                    ugi += 0.01
+                if t>=10*12:
+                    def_penalty += deficit - market
+                    def_penalty_.append(def_penalty)
+                
+   ############## Calculation of costs
+                surface_cost += self.compute_sf_stepcost(r_c, r_gi, md[t], r_swp, market)/10e6
+                curtailment_cost += current_curtail*self.curtailment_unitcost/10e6
+                        
+                # distribution costs
+                dis_cost += 1.8555*( dem/self.demand[t%12] )
+                if desal_capac[t] > 0:
+                    dis_cost += 0.240
 
-            if (t%12)==9: 
-                nc_ = nc[int((t-9)/self.T)]
-            else:
-                nc_ = 0
+                if l3_capac[t] == 20:
+                    dis_cost += - 0.1126
+                if l3_capac[t] == 50:
+                    dis_cost += - 0.1696
 
-            if (t%12)==4: 
-                nswp_ = nswp[int((t-4)/self.T)]
-            else:
-                nswp_ = 0
+                if l6_capac[t] == 20:
+                    dis_cost += - 0.0149
+                if l6_capac[t] == 50:
+                    dis_cost += - 0.0163
 
+                if l2_capac[t] == 20:
+                    dis_cost +=  0.0121 #minus in individual, plus in reg
+                if l2_capac[t] == 50:
+                    dis_cost += - 0.0199
 
+                if l4_capac[t] == 20:
+                    dis_cost += - 0.0119
+                if l4_capac[t] == 50:
+                    dis_cost += - 0.0127
 
-            s_, r_c  = self.cachuma.integration(sc[t], uc, nc_, d)
-            sc.append(s_)
-            rc.append(r_c)
+                if l5_capac[t] == 20:
+                    dis_cost += - 0.0195
+                if l5_capac[t] == 50:
+                    dis_cost += - 0.0125
 
-            s_, r_gi  = self.gibraltar.integration(sgi[t], ugi, ngi[t], d)
-            sgi.append(s_)
-            rgi.append(r_gi)
+                if l7_capac[t] == 20:
+                    dis_cost += - 0.0096
+                if l7_capac[t] == 50:
+                    dis_cost += - 0.0151
 
-            s_, r_swp  = self.swp.integration(sswp[t], uswp, nswp_, d)
-            sswp.append(s_)
-            rswp.append(r_swp)
+                if l1_capac[t] == 20:
+                    dis_cost += 0.0014
+                if l1_capac[t] == 50:
+                    dis_cost += - 0.0050
+                    
+            # Technology costs
+            capex, opex = self.tech_cost(desal_capac, wwtp_capac, l1_capac, l2_capac, l3_capac, l4_capac, l5_capac, l6_capac, l7_capac)
+    
+            # Objective function is total costs + a penalty for deficit
+            Cost = surface_cost/self.Ny + curtailment_cost/self.Ny + opex/self.Ny + capex/self.Ny + dis_cost/self.Ny/10e6 
+            Jcost = Cost + def_penalty
 
-
-            # calculation of deficit for penalty
-            deficit = max( 0, dem - max(0,rswp[t+1]) - max(0, rc[t+1]) - max(0, rgi[t+1]) - max(0, md[t]) - installed_capacity[t])
-            if deficit < 1e-10:
-                deficit = 0
-
-            # restricted purchase of market water to mitigate the deficit 
-            max_market = max( 0, self.max_swp_market - r_swp )
-            market.append(min( max_market, deficit ))
-
-            if t>=10*12:
-                def_penalty.append(max(0, deficit - market[t]))
-
-            dis_cost.append(1.8555*( dem/self.demand[t%12] ))
-            if desal_capac[t] > 0:
-                dis_cost[t] += 0.240
-
-            if l3_capac[t] == 20:
-                dis_cost[t] += - 0.1126
-            if l3_capac[t] == 50:
-                dis_cost[t] += - 0.1696
-
-            if l6_capac[t] == 20:
-                dis_cost[t] += - 0.0149
-            if l6_capac[t] == 50:
-                dis_cost[t] += - 0.0163
-
-            if l2_capac[t] == 20:
-                dis_cost[t] +=  0.0121 #minus in individual, plus in reg
-            if l2_capac[t] == 50:
-                dis_cost[t] += - 0.0199
-
-            if l4_capac[t] == 20:
-                dis_cost[t] += - 0.0119
-            if l4_capac[t] == 50:
-                dis_cost[t] += - 0.0127
-
-            if l5_capac[t] == 20:
-                dis_cost[t] += - 0.0195
-            if l5_capac[t] == 50:
-                dis_cost[t] += - 0.0125
-
-            if l7_capac[t] == 20:
-                dis_cost[t] += - 0.0096
-            if l7_capac[t] == 50:
-                dis_cost[t] += - 0.0151
-
-            if l1_capac[t] == 20:
-                dis_cost[t] += 0.0014
-            if l1_capac[t] == 50:
-                dis_cost[t] += - 0.0050
-
-        rc        = rc[1:]
-        rgi       = rgi[1:]
-        rswp      = rswp[1:]
-        rtunnel   =md
-        nat_water_cost = self.compute_sf_cost(rc, rgi, rswp, rtunnel)
-        curtailment_cost.append(current_curtail[t]*self.curtailment_unitcost/10e6)
-
-        capex, opex = self.tech_cost(desal_capac, wwtp_capac, l1_capac, l2_capac, l3_capac, l4_capac, l5_capac, l6_capac, l7_capac)
-        Cost = nat_water_cost/10e6/self.Ny + sum(market)*self.market_cost/10e6/self.Ny + sum(curtailment_cost)/self.Ny + opex/self.Ny + capex/self.Ny + sum(dis_cost)/self.Ny/10e6
-
-        Jcost = Cost + max(0, sum(def_penalty))
-        
-        deficit_annual_ = np.reshape(def_penalty, (90, 12)).T
+        deficit_annual_ = np.reshape(def_penalty_, (90, 12)).T
         deficit_annual = sum(deficit_annual_)
-        
-        
-######## write vectors to output
+
         log.curtailed_demand = final_demand
         log.def_penalty = def_penalty
         log.demand = self.demand
@@ -465,14 +465,19 @@ class SBsim(object):
         log.rules_con.append([rr[0] for rr in complete_rules_con])
         log.rules_rmc.append([rr[0] for rr in complete_rules_rmc])
         log.rules_rmd.append([rr[0] for rr in complete_rules_rmd])
+        log.rules_rco.append([rr[0] for rr in complete_rules_rco])
         log.indicators = indicators_list
         log.thresh_cen.append([rr[1] for rr in complete_rules_cen])
         log.thresh_dec.append([rr[1] for rr in complete_rules_dec])
         log.thresh_con.append([rr[1] for rr in complete_rules_con])
         log.thresh_rmc.append([rr[1] for rr in complete_rules_rmc])
         log.thresh_rmd.append([rr[1] for rr in complete_rules_rmd])
-
+        log.thresh_rco.append([rr[1] for rr in complete_rules_rco])
+        
         return log
+
+
+    
 
     def planning_policy(self, policy, t, installed_capacity, opex, capex, uc, tech_cap, tech_loc, tech_lifespan):
         i = 0
