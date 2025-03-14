@@ -29,7 +29,7 @@ import pandas as pd
 # set optimization parameters
 class OptimizationParameters(object):
     def __init__(self):
-        self.cores    = 32 # this value is used only in the full scale optimization
+        self.cores    = 24 # this value is used only in the full scale optimization
         self.nseeds   = 1
         self.nobjs    = 1
         self.drought_type = [87, 0.83, 2] # set drought type here [Persistence (months), Intensity (unitless), Frequency (droughts/100 years)]

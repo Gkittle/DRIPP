@@ -264,12 +264,15 @@ class SB(object):
                             Location['D3'] = 1
 
                     if any( [policy_rco =='d1', policy_rco =='d2', policy_rco=='d3'] ):
-                        if all( [Location['D1'] == 1, policy_rco =='d1']):
+                        if all( [Location['D1'] == 1, policy_rco =='d1', Location['D2'] == 0, Location['D3'] == 0]):
                             reduction_amount = self.conservation_measures_remove(t, reduction_amount, policy_rco, Location)
-                        elif all([Location['D2'] == 1, policy_rco == 'd2']):
+                            Location['D1'] = 0
+                        elif all([Location['D2'] == 1, policy_rco == 'd2', Location['D3'] == 0]):
                             reduction_amount = self.conservation_measures_remove(t, reduction_amount, policy_rco, Location)
+                            Location['D2'] = 0
                         elif all([Location['D3'] == 1, policy_rco == 'd3']):
                             reduction_amount = self.conservation_measures_remove(t, reduction_amount, policy_rco, Location)
+                            Location['D3'] = 0
 
                 installed_capacity[t] = sum([desal_capac[t], wwtp_capac[t], l1_capac[t], l2_capac[t], l3_capac[t], l4_capac[t], l5_capac[t], l6_capac[t], l7_capac[t]])
                     
@@ -495,7 +498,6 @@ class SB(object):
 
         Ti = min(self.H, t + t_depl)
         reduction_amount[Ti:] = [max( exist_red, min(rr, exist_red + rr)) for exist_red in reduction_amount[Ti:] ]
-    
         return reduction_amount
     
     def conservation_measures_remove(self, t, reduction_amount, policy, Location):
@@ -508,14 +510,20 @@ class SB(object):
         term = 0
         final_rr = 0
 
-        if all([Location['D1'] == 1, policy != 'd1']):
-            remainder = 'd1'
-        
-        if all([Location['D2'] == 1, policy !='d2']):
-            remainder = 'd2'
-        
-        if all([Location['D3'] == 1, policy != 'd3']):
-            remainder = 'd3'
+        if policy == 'd1':
+            remainder = 0
+        elif policy == 'd2':
+            if Location['D1'] == 1:
+                remainder = 'd1'
+            else:
+                remainder = 0
+        elif policy == 'd3':
+            if Location['D2'] == 1:
+                remainder = 'd2'
+            elif Location['D1'] == 1:
+                remainder = 'd1'
+            else:
+                remainder = 0
         
 
         i = 0
