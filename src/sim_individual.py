@@ -636,7 +636,7 @@ class SBsim(object):
                 t_depl = self.t_depl[i]
             if action == remainder:
                 term = 12*scale*pow((1/(float(self.capacity[i]/100.0))) - 1, sigma_inv)
-                final_rr = self.capacity[i]
+                final_rr = self.capacity[i]/100.0
 
             i = i + 1
 
