@@ -280,9 +280,9 @@ class SB(object):
    ############## simulation of surface water reservoirs
                 
                 # demand from surface water = total demand - tech installed and curtailment
-                mean_demand = sum(self.demand)/len(self.demand)
-                dem =  self.demand[(t%12)] - mean_demand*(reduction_amount[t])
-                current_curtail = mean_demand*( reduction_amount[t])
+                #mean_demand = sum(self.demand)/len(self.demand)
+                dem =  self.demand[(t%12)]*(1 - reduction_amount[t])
+                current_curtail = self.demand[(t%12)]*( reduction_amount[t])
                 d = max( 0, dem - installed_capacity[t] - md[t] )
 
                 SS = sc[-1] + sgi[-1] + sswp[-1]
