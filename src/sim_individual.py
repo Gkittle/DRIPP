@@ -590,6 +590,8 @@ class SBsim(object):
         return sum(capex), sum(opex)
 
     def conservation_measures(self, t, reduction_amount, policy, Location):
+        c1 = 0.25
+        c2 = 0.5
         i = 0
         for action in self.action_name:
             if policy == action:
@@ -599,16 +601,19 @@ class SBsim(object):
             i = i + 1
 
         Ti = min(self.H, t + t_depl)
-        reduction_amount[Ti:] = [max( exist_red, min(rr, exist_red + rr)) for exist_red in reduction_amount[Ti:] ]
+        Tf = min(self.H, Ti + c1*4)
+        uptake = [1 - (1/(1+np.exp((tt-(c1*12))/c2))) for tt in range(Tf - Ti)]
+        red_i = reduction_amount[Ti]
+        reduction_amount[Ti:Tf] = [((rr-red_i)*up + exist_red) for exist_red,up in zip(reduction_amount[Ti:Tf], uptake)]
+        reduction_amount[Tf:] = rr*np.ones(len(reduction_amount[Tf:]))
         return reduction_amount
     
     def conservation_measures_remove(self, t, reduction_amount, policy, Location):
-        c1 = 7.5
-        c2 = 15
+        c1 = 7.5 #number of years until inflection point
+        c2 = 15.0 #factor influencing slope
         remainder = 0
         rr = 0
         t_depl = 0
-        term = 0
         final_rr = 0
 
         if policy == 'd1':
@@ -628,7 +633,7 @@ class SBsim(object):
         
 
         i = 0
-        term = 50*12 #if not continuing with a different level of curtailment, forget curtailment after 15 years
+        term = 50*12 #if not continuing with a different level of curtailment, forget curtailment after 50 years
         for action in self.action_name:
             if policy == action:
                 rr = self.capacity[i]/100.0
@@ -639,11 +644,18 @@ class SBsim(object):
 
             i = i + 1
 
-        Ti = min(self.H, t + t_depl)
+        Ti = self.H
+        j = 0
+        for red in reduction_amount:
+            if j >= t + t_depl:
+                if red <= rr:
+                    Ti = j
+            j = j + 1
+
         Tf = min(Ti + int(term), self.H)
         surv = [1/(1+np.exp((tt-(c1*12))/c2)) for tt in range(Tf - Ti)]
-        reduction_amount[Ti : Tf] = [max( exist_red, min( rr, rr*su))  for exist_red,su in zip(reduction_amount[Ti : Tf], surv) ]
-        reduction_amount[Tf:] = [max( exist_red, min(final_rr, exist_red + final_rr)) for exist_red in reduction_amount[Tf:] ]
+        reduction_amount[Ti : Tf] = [exist_red*su  for exist_red,su in zip(reduction_amount[Ti : Tf], surv) ]
+        reduction_amount[Tf:] = final_rr*np.ones(len(reduction_amount[Tf:]))
     
         return reduction_amount
 
