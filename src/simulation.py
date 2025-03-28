@@ -501,9 +501,8 @@ class SB(object):
         return reduction_amount
     
     def conservation_measures_remove(self, t, reduction_amount, policy, Location):
-        #sigma = 1.03 #shape
-        #scale = 8.0 #alpha
-        #sigma_inv = 1/sigma
+        c1 = 7.5 #number of years until inflection point
+        c2 = 15 #factor influencing slope
         remainder = 0
         rr = 0
         t_depl = 0
@@ -533,18 +532,14 @@ class SB(object):
                 rr = self.capacity[i]/100.0
                 t_depl = self.t_depl[i]
             if action == remainder:
-                #term = 12*scale*pow((1/(float(self.capacity[i]/100.0))) - 1, sigma_inv)
-                term = -36*np.log(float(self.capacity[i]/100.0))
+                term = c2*np.log((1/self.capacity[i]/100.0) - 1) + c1*12
                 final_rr = self.capacity[i]/100.0
 
             i = i + 1
 
         Ti = min(self.H, t + t_depl)
-        #Tf = min(Ti + 50*12, self.H) #forget effect after 15 years 
         Tf = min(Ti + int(term), self.H)
-        # lognormal distribution
-        #surv = [pow(1+pow(tt/12/scale, sigma),-1) for tt in range(Tf - Ti)]
-        surv = [np.exp(-1*tt/36) for tt in range(Tf-Ti)]
+        surv = [1/(1+np.exp((tt-(c1*12))/c2)) for tt in range(Tf - Ti)]
         reduction_amount[Ti : Tf] = [max( exist_red, min( rr, rr*su))  for exist_red,su in zip(reduction_amount[Ti : Tf], surv) ]
         reduction_amount[Tf:] = [max( exist_red, min(final_rr, exist_red + final_rr)) for exist_red in reduction_amount[Tf:] ]
     
