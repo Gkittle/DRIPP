@@ -323,13 +323,13 @@ class SBsim(object):
 
                     # curtailment decisions
                     if any( [policy_con=='d1', policy_con=='d2', policy_con=='d3'] ):
-                        if all([policy_con == 'd1', policy_rco != 'd1']):
+                        if all([policy_con == 'd1', policy_rco != 'd1', Location['D1'] == 0]):
                             reduction_amount = self.conservation_measures(t, reduction_amount, policy_con, Location)
                             Location['D1'] = 1
-                        elif all([policy_con == 'd2', policy_rco != 'd2']):
+                        elif all([policy_con == 'd2', policy_rco != 'd2', Location['D2'] == 0]):
                             reduction_amount = self.conservation_measures(t, reduction_amount, policy_con, Location)
                             Location['D2'] = 1
-                        elif all([policy_con == 'd3', policy_rco != 'd3']):
+                        elif all([policy_con == 'd3', policy_rco != 'd3', Location['D3'] == 0]):
                             reduction_amount = self.conservation_measures(t, reduction_amount, policy_con, Location)
                             Location['D3'] = 1
 
@@ -590,8 +590,8 @@ class SBsim(object):
         return sum(capex), sum(opex)
 
     def conservation_measures(self, t, reduction_amount, policy, Location):
-        c1 = 0.25
-        c2 = 0.5
+        c1 = 2.5
+        c2 = 4.0
         i = 0
         for action in self.action_name:
             if policy == action:
@@ -600,11 +600,10 @@ class SBsim(object):
                 break
             i = i + 1
 
-        Ti = min(self.H, t + t_depl)
-        Tf = min(self.H, Ti + c1*4)
+        Ti = int(min(self.H, t + t_depl))
+        Tf = int(min(self.H, Ti + 60)) #from the curve, forget effect after 60 months
         uptake = [1 - (1/(1+np.exp((tt-(c1*12))/c2))) for tt in range(Tf - Ti)]
-        red_i = reduction_amount[Ti]
-        reduction_amount[Ti:Tf] = [((rr-red_i)*up + exist_red) for exist_red,up in zip(reduction_amount[Ti:Tf], uptake)]
+        reduction_amount[Ti:Tf] = [((rr-exist_red)*up + exist_red) for exist_red,up in zip(reduction_amount[Ti:Tf],uptake)]
         reduction_amount[Tf:] = rr*np.ones(len(reduction_amount[Tf:]))
         return reduction_amount
     
@@ -612,9 +611,8 @@ class SBsim(object):
         c1 = 7.5 #number of years until inflection point
         c2 = 15.0 #factor influencing slope
         remainder = 0
-        rr = 0
         t_depl = 0
-        final_rr = 0
+        final_rr = 0.0
 
         if policy == 'd1':
             remainder = 0
@@ -636,27 +634,29 @@ class SBsim(object):
         term = 50*12 #if not continuing with a different level of curtailment, forget curtailment after 50 years
         for action in self.action_name:
             if policy == action:
-                rr = self.capacity[i]/100.0
                 t_depl = self.t_depl[i]
             if action == remainder:
-                term = c2*np.log((1/self.capacity[i]/100.0) - 1) + c1*12
-                final_rr = self.capacity[i]/100.0
+                if self.capacity[i]/100.0 == 0.0:
+                    final_rr = 0.0
+                else:
+                    final_rr = self.capacity[i]/100.0
 
             i = i + 1
 
-        Ti = self.H
-        j = 0
-        for red in reduction_amount:
-            if j >= t + t_depl:
-                if red <= rr:
-                    Ti = j
-            j = j + 1
-
+        Ti = min(t + t_depl, self.H)
         Tf = min(Ti + int(term), self.H)
         surv = [1/(1+np.exp((tt-(c1*12))/c2)) for tt in range(Tf - Ti)]
-        reduction_amount[Ti : Tf] = [exist_red*su  for exist_red,su in zip(reduction_amount[Ti : Tf], surv) ]
+        array = []
+        j = Ti
+        k = 0
+        exist_red = reduction_amount[Ti]
+        while j < Tf:
+            su = surv[k]
+            array.append((((exist_red-final_rr)*su) + final_rr))
+            j = j + 1
+            k = k + 1
+        reduction_amount[Ti:Tf] = array
         reduction_amount[Tf:] = final_rr*np.ones(len(reduction_amount[Tf:]))
-    
         return reduction_amount
 
     def compute_sf_cost(self, rc, rgi, rswp, r_tunnel):
