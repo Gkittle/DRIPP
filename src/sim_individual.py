@@ -590,13 +590,8 @@ class SBsim(object):
         return sum(capex), sum(opex)
 
     def conservation_measures(self, t, reduction_amount, policy, Location):
-<<<<<<< HEAD
         c1 = 2.5
         c2 = 4.0
-=======
-        c1 = 0.25
-        c2 = 0.5
->>>>>>> e1299df (added uptake curve and edited decay curve)
         i = 0
         for action in self.action_name:
             if policy == action:
@@ -605,18 +600,10 @@ class SBsim(object):
                 break
             i = i + 1
 
-<<<<<<< HEAD
         Ti = int(min(self.H, t + t_depl))
         Tf = int(min(self.H, Ti + 60)) #from the curve, forget effect after 60 months
         uptake = [1 - (1/(1+np.exp((tt-(c1*12))/c2))) for tt in range(Tf - Ti)]
         reduction_amount[Ti:Tf] = [((rr-exist_red)*up + exist_red) for exist_red,up in zip(reduction_amount[Ti:Tf],uptake)]
-=======
-        Ti = min(self.H, t + t_depl)
-        Tf = min(self.H, Ti + c1*4)
-        uptake = [1 - (1/(1+np.exp((tt-(c1*12))/c2))) for tt in range(Tf - Ti)]
-        red_i = reduction_amount[Ti]
-        reduction_amount[Ti:Tf] = [((rr-red_i)*up + exist_red) for exist_red,up in zip(reduction_amount[Ti:Tf], uptake)]
->>>>>>> e1299df (added uptake curve and edited decay curve)
         reduction_amount[Tf:] = rr*np.ones(len(reduction_amount[Tf:]))
         return reduction_amount
     
@@ -625,11 +612,7 @@ class SBsim(object):
         c2 = 15.0 #factor influencing slope
         remainder = 0
         t_depl = 0
-<<<<<<< HEAD
         final_rr = 0.0
-=======
-        final_rr = 0
->>>>>>> e1299df (added uptake curve and edited decay curve)
 
         if policy == 'd1':
             remainder = 0
@@ -660,7 +643,6 @@ class SBsim(object):
 
             i = i + 1
 
-<<<<<<< HEAD
         Ti = min(t + t_depl, self.H)
         Tf = min(Ti + int(term), self.H)
         surv = [1/(1+np.exp((tt-(c1*12))/c2)) for tt in range(Tf - Ti)]
@@ -675,21 +657,6 @@ class SBsim(object):
             k = k + 1
         reduction_amount[Ti:Tf] = array
         reduction_amount[Tf:] = final_rr*np.ones(len(reduction_amount[Tf:]))
-=======
-        Ti = self.H
-        j = 0
-        for red in reduction_amount:
-            if j >= t + t_depl:
-                if red <= rr:
-                    Ti = j
-            j = j + 1
-
-        Tf = min(Ti + int(term), self.H)
-        surv = [1/(1+np.exp((tt-(c1*12))/c2)) for tt in range(Tf - Ti)]
-        reduction_amount[Ti : Tf] = [exist_red*su  for exist_red,su in zip(reduction_amount[Ti : Tf], surv) ]
-        reduction_amount[Tf:] = final_rr*np.ones(len(reduction_amount[Tf:]))
-    
->>>>>>> e1299df (added uptake curve and edited decay curve)
         return reduction_amount
 
     def compute_sf_cost(self, rc, rgi, rswp, r_tunnel):
