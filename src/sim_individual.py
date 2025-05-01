@@ -136,6 +136,8 @@ class SBsim(object):
         indicators_list      = []
         final_demand         = []
         def_penalty_         = []
+        curtailment_magnitude= []
+        deficit_track        = []
         
         for _ in range(self.nsim):            
             #s should be randomized when selecting from the drought scenarios?
@@ -354,7 +356,9 @@ class SBsim(object):
                 dem = self.demand[(t%12)]*(1 - reduction_amount[t])
                 final_demand.append(dem)
                 current_curtail = self.demand[(t%12)]*( reduction_amount[t])
+                curtailment_magnitude.append(current_curtail)
                 d = max( 0, dem - installed_capacity[t] - md[t] )
+                deficit_track.append(d)
 
                 SS = sc[-1] + sgi[-1] + sswp[-1]
                 uc  = sc[-1]/SS 
@@ -366,7 +370,6 @@ class SBsim(object):
                         uswp -= 0.05
                         uc += 0.04
                         ugi += 0.01
-    
                 # surface water allocation in cachuma swp and comes in the form of an annual allocation
                 # distributed in the month of October for Cachuma and May for SWP
                 if (t%12)==9: # October
@@ -384,12 +387,23 @@ class SBsim(object):
                 s_, r_c  = self.cachuma.integration(sc[t], uc, nc_, d)
                 sc.append(s_)
     
+                if any([s_ < 0, uc < 0]):
+                    print("HERE")
+
                 s_, r_gi  = self.gibraltar.integration(sgi[t], ugi, ngi[t], d)
                 sgi.append(s_)
     
+                if any([s_ < 0, ugi < 0]):
+                    print("HERE")
+
                 s_, r_swp  = self.swp.integration(sswp[t], uswp, nswp_, d)
                 sswp.append(s_)
                 
+                if any([s_ < 0, uswp < 0]):
+                    print("HERE")
+
+                print(f"sim_individual: {[sc[-1], sgi[-1], sswp[-1],uc,ugi,uswp, nc_, ngi[t], nswp_]}")
+
                 
                 # calculation of deficit for penalty
                 deficit = max( 0, dem - r_swp - r_c - r_gi - md[t] - installed_capacity[t]) #altered demand to be the curtailed demand
@@ -454,10 +468,19 @@ class SBsim(object):
             # Objective function is total costs + a penalty for deficit
             Cost = surface_cost/self.Ny + curtailment_cost/self.Ny + opex/self.Ny + capex/self.Ny + dis_cost/self.Ny/10e6 
             Jcost = Cost + def_penalty
+            #print(f"Surface Cost: {surface_cost}")
+            #print(f"Curtailment Cost: {curtailment_cost}")
+            #print(f"OPEX: {opex}")
+            #print(f"CAPEX: {capex}")
+            #print(f"Distribution Cost: {dis_cost}")
 
         deficit_annual_ = np.reshape(def_penalty_, (90, 12)).T
         deficit_annual = sum(deficit_annual_)
 
+        log.deficit = deficit_track
+        log.sswp = sswp
+        log.sc = sc
+        log.sgi = sgi
         log.curtailed_demand = final_demand
         log.def_penalty = def_penalty
         log.demand = self.demand
@@ -465,7 +488,7 @@ class SBsim(object):
         log.sri12 = sri12
         log.sri36 = sri36
         log.sc = sc[:-1]
-        log.reduction_magn = current_curtail
+        log.reduction_magn = curtailment_magnitude
         log.reduction_perc = reduction_amount
         log.residualdeficit = max(deficit_annual)
         log.J = Jcost
@@ -590,8 +613,10 @@ class SBsim(object):
         return sum(capex), sum(opex)
 
     def conservation_measures(self, t, reduction_amount, policy, Location):
-        c1 = 2.5
-        c2 = 4.0
+        #c1 = 2.5
+        #c2 = 4.0
+        c1 = 0.1
+        c2 = 0.25
         i = 0
         for action in self.action_name:
             if policy == action:

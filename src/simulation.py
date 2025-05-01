@@ -488,8 +488,8 @@ class SB(object):
         return sum(capex), sum(opex)
 
     def conservation_measures(self, t, reduction_amount, policy, Location):
-        c1 = 0.1
-        c2 = 0.25
+        c1 = 2.5
+        c2 = 4.0
         i = 0
         for action in self.action_name:
             if policy == action:
@@ -499,7 +499,7 @@ class SB(object):
             i = i + 1
 
         Ti = int(min(self.H, t + t_depl))
-        Tf = int(min(self.H, Ti + 4)) #from the curve, forget effect after 4 months
+        Tf = int(min(self.H, Ti + 60)) #from the curve, forget effect after 60 months
         uptake = [1 - (1/(1+np.exp((tt-(c1*12))/c2))) for tt in range(Tf - Ti)]
         reduction_amount[Ti:Tf] = [((rr-exist_red)*up + exist_red) for exist_red,up in zip(reduction_amount[Ti:Tf],uptake)]
         reduction_amount[Tf:] = rr*np.ones(len(reduction_amount[Tf:]))
