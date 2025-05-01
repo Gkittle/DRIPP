@@ -613,10 +613,8 @@ class SBsim(object):
         return sum(capex), sum(opex)
 
     def conservation_measures(self, t, reduction_amount, policy, Location):
-        #c1 = 2.5
-        #c2 = 4.0
-        c1 = 0.1
-        c2 = 0.25
+        c1 = 2.5
+        c2 = 4.0
         i = 0
         for action in self.action_name:
             if policy == action:
