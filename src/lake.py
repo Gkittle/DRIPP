@@ -5,6 +5,7 @@ Lake class contains methods to simulate water reservoir in the Santa Barbara wat
 """
 
 import numpy as np
+import sys
 
 
 
@@ -33,14 +34,21 @@ class Lake(object):
             
         for h in range(HH):
             r_, mr = self.actual_release(ss[h], u*demand/HH)
-            rr.append(r_)
+            if ss[h] + self.deltaH*n0/HH < 0:
+                #if the inflow is negative (evaporation) and therefore depletes the surface storage, no water should be released from the reservoir
+                rr.append(0)
+            else:
+                rr.append(r_)
             spill = max(0, mr-r_)
             s_ = ss[h] + self.deltaH*( n0/HH - rr[h+1] - spill ) - e*A/1000/HH
             s_ = min(s_, self.smax) 
+            s_ = max(0,s_)
             ss.append(s_)
-        print(f"lake: {[s0,u,n0,demand, ss[h], self.deltaH*( n0/HH - rr[h+1] - spill ) - e*A/1000/HH, r_, mr]}")
+        #print(f"lake: {[s0,u,n0,demand, ss[h], self.deltaH*( n0/HH - rr[h+1] - spill ) - e*A/1000/HH, r_, mr]}")
         s = ss[-1] 
         r = np.sum(rr[1:]) 
+        if any([s < 0, r < 0]):
+            sys.stdout.write(f"ERROR: negative water balance values [s,r]: {[s,r]}\n")
         return s, r
     
     def sim_lake(self, s0, r, e=0):

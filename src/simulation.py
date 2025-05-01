@@ -20,6 +20,7 @@ from gibraltar_lake import Gibraltar
 from swp_lake import SWP
 from policy import *
 import numpy.matlib as mat
+import sys
 
 class log_results:
     pass
@@ -286,16 +287,33 @@ class SB(object):
                 d = max( 0, dem - installed_capacity[t] - md[t] )
 
                 SS = sc[-1] + sgi[-1] + sswp[-1]
-                uc  = sc[-1]/SS 
-                ugi = sgi[-1]/SS
-                uswp = sswp[-1]/SS
+                if SS > 0:
+                    uc  = sc[-1]/SS 
+                    ugi = sgi[-1]/SS
+                    uswp = sswp[-1]/SS
+                elif SS == 0:
+                    uc = 0
+                    ugi = 0
+                    uswp = 0
+
+                if any([SS < 0, uc < 0, ugi < 0, uswp < 0]):
+                    sys.stdout.write(f"ERROR: negative water balance values [SS,uc,ugi,uswp]: {[SS,uc,ugi,uswp]}\n")
                 
+                #if uswp*d > self.swp.max_release:
+                #    while uswp*d > self.swp.max_release:
+                #        uswp -= 0.05
+                #        uc += 0.04
+                #        ugi += 0.01
+
                 if uswp*d > self.swp.max_release:
-                    while uswp*d > self.swp.max_release:
-                        uswp -= 0.05
-                        uc += 0.04
-                        ugi += 0.01
-    
+                    #altering the percentage allocation by decreasing swp by 5% and increasing c by 4% and gi by 1% as a ratio of percentages so swp max release is not violated
+                    uswp_i = self.swp.max_release/d
+                    per_removed = uswp-uswp_i
+                    unit_per = per_removed/5
+                    uc = uc + 4*unit_per
+                    ugi = ugi + 1*unit_per
+                    uswp = uswp_i
+
                 # surface water allocation in cachuma swp and comes in the form of an annual allocation
                 # distributed in the month of October for Cachuma and May for SWP
                 if (t%12)==9: # October
