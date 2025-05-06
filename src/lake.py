@@ -43,6 +43,7 @@ class Lake(object):
             s_ = ss[h] + self.deltaH*( n0/HH - rr[h+1] - spill ) - e*A/1000/HH
             s_ = min(s_, self.smax) 
             s_ = max(0,s_)
+            s_ = max(s_, 0.0001)
             ss.append(s_)
         #print(f"lake: {[s0,u,n0,demand, ss[h], self.deltaH*( n0/HH - rr[h+1] - spill ) - e*A/1000/HH, r_, mr]}")
         s = ss[-1] 

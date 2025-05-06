@@ -142,6 +142,12 @@ class SBsim(object):
         uc_all               = []
         ugi_all              = []
         uswp_all             = []
+        rc_all               = []
+        rgi_all              = []
+        rswp_all             = []
+        nc_all               = []
+        ngi_all              = []
+        nswp_all             = []
         
         for _ in range(self.nsim):            
             #s should be randomized when selecting from the drought scenarios?
@@ -412,18 +418,24 @@ class SBsim(object):
                 # mass balance of water reservoirs
                 s_, r_c  = self.cachuma.integration(sc[t], uc, nc_, d)
                 sc.append(s_)
+                rc_all.append(r_c)
+                nc_all.append(nc_)
     
                 #if any([s_ < 0, uc < 0]):
                 #    print("HERE")
 
                 s_, r_gi  = self.gibraltar.integration(sgi[t], ugi, ngi[t], d)
                 sgi.append(s_)
+                rgi_all.append(r_gi)
+                ngi_all.append(ngi[t])
     
                 #if any([s_ < 0, ugi < 0]):
                 #    print("HERE")
 
                 s_, r_swp  = self.swp.integration(sswp[t], uswp, nswp_, d)
                 sswp.append(s_)
+                rswp_all.append(r_swp)
+                nswp_all.append(nswp_)
                 
                 #if any([s_ < 0, uswp < 0]):
                 #    print("HERE")
@@ -510,6 +522,12 @@ class SBsim(object):
         log.uc = uc_all
         log.ugi = ugi_all
         log.uswp = uswp_all
+        log.rc = rc_all
+        log.rgi = rgi_all
+        log.rswp = rswp_all
+        log.nc = nc_all
+        log.ngi = ngi_all
+        log.nswp = nswp_all
         log.curtailed_demand = final_demand
         log.def_penalty = def_penalty
         log.demand = self.demand
