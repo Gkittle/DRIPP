@@ -105,6 +105,23 @@ else:
     mut_prob_ = 0.1
     cx_prob_ = 0.9 
 
+#Setting curtailment capacities
+if 0:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("percent", type = int)
+    args = parser.parse_args()
+    percent = args.percent
+    i = 0
+    for name in action:
+        if name == 'd1':
+            cx[i] = int(15*percent/100)
+        elif name == 'd2':
+            cx[i] = int((25-10)*percent/100 + 15)
+        elif name == 'd3':
+            cx[i] = int((50-25)*percent/100 + 25)
+        i = i + 1
+            
+
 # define parameters for model and algorithm 
 model = SB(opt_par, action_name, capacity, om, cx, t_depl, lifetime, curt) #remove curt parameter when not doing curtailment unit cost experiments
 algorithm = PTreeOpt(model.simulate,
