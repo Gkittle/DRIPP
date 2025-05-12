@@ -101,9 +101,9 @@ if 0:
     cx_prob_ = args.cx_prob
 else:
     nfe_ = 300000
-    mu_ = 10
-    mut_prob_ = 0.5
-    cx_prob_ = 0.9 #Marta had it in main.py as 0.7, but it was never used in opt.py. It was hard-coded in at 0.9 because she created a new implementation where the cross-over probability is the probability of cross-over and mutation being possible
+    mu_ = 15
+    mut_prob_ = 0.1
+    cx_prob_ = 0.9 
 
 # define parameters for model and algorithm 
 model = SB(opt_par, action_name, capacity, om, cx, t_depl, lifetime, curt) #remove curt parameter when not doing curtailment unit cost experiments
