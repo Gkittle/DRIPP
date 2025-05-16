@@ -25,6 +25,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import argparse
 import pandas as pd
+import time
 
 # set optimization parameters
 class OptimizationParameters(object):
@@ -120,6 +121,23 @@ if 0:
         elif name == 'd3':
             cx[i] = int((50-25)*percent/100 + 25)
         i = i + 1
+
+#Sweeping experiment
+if 0:
+    percent = np.random.rand(time.time())
+    i = 0
+    for name in action:
+        if name == 'd1':
+            cx[i] = int(15*percent)
+            t_depl[i] = int(12*percent)
+        elif name == 'd2':
+            cx[i] = int((25-10)*percent + 15)
+            t_depl[i] = int(12*percent)
+        elif name == 'd3':
+            cx[i] = int((50-25)*percent + 25)
+            t_depl[i] = int(12*percent)
+        i = i + 1
+
             
 
 # define parameters for model and algorithm 
@@ -188,7 +206,7 @@ if __name__ == '__main__':
     result.best_score = best_score
     result.snapshots = snapshots
     result.model = model
-    string = 'results/test_results' + str(opt_par.drought_type[0]) + '_' + str(opt_par.drought_type[1]) + '_' + str(seed) + str(curt) +'.dat' #remove curt when not running curtailment cost experiment
+    string = 'results/test_results' + str(opt_par.drought_type[0]) + '_' + str(opt_par.drought_type[1]) + '_' + str(percent) +'.dat' #remove curt when not running curtailment cost experiment
 
     with open(string, 'wb') as f: 
         pickle.dump(result, f)

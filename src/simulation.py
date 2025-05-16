@@ -62,7 +62,7 @@ class SB(object):
         self.distr_costs = []
         self.max_swp_market = 275
         self.market_cost  = 1500
-        self.curtailment_unitcost = curtailment_unitcost
+        self.curtailment_unitcost = 15.19*435.6 #$/AF
 
 
     def simulate(self, P):
@@ -130,6 +130,9 @@ class SB(object):
             surface_cost      = 0
             curtailment_cost  = 0
             count             = 5
+
+            Fixed_rev         = 13497474.4 #$ Tier 1 constant volumetric cost and constant fixed costs
+            per_change_rate   = 1 #percentage change in volumetric rate charge
     
     
             # binary value that indicates whether the plant location is occupied by a plant (1) or not (0) or if a level of curtailment is triggered
@@ -352,7 +355,7 @@ class SB(object):
                 
    ############## Calculation of costs
                 surface_cost += self.compute_sf_stepcost(r_c, r_gi, md[t], r_swp, market)/10e6
-                curtailment_cost += current_curtail*self.curtailment_unitcost/10e6
+                curtailment_cost += current_curtail*self.curtailment_unitcost*per_change_rate/10e6
                         
                 # distribution costs
                 dis_cost += 1.8555*( dem/self.demand[t%12] )
@@ -399,6 +402,10 @@ class SB(object):
     
             # Objective function is total costs + a penalty for deficit
             Jcost = surface_cost/self.Ny + curtailment_cost/self.Ny + opex/self.Ny + capex/self.Ny + dis_cost/self.Ny/10e6 
+
+            # Setting percentage of rate cost to update volumetric rate
+            per_change_rate = Jcost/(Fixed_rev + self.curtailment_unitcost*current_curtail)
+
             Jcost = Jcost + def_penalty
             J.append(Jcost)
         
