@@ -124,18 +124,19 @@ if 0:
 
 #Sweeping experiment
 if 0:
-    percent = np.random.rand(time.time())
+    percent1 = np.random.rand(int(time.time()) % (2**32))
+    percent2 = np.random.rand(int(time.time()) % (2**32) + 4)
     i = 0
     for name in action:
         if name == 'd1':
-            cx[i] = int(15*percent)
-            t_depl[i] = int(12*percent)
+            cx[i] = int(15*percent1)
+            t_depl[i] = int(12*percent2)
         elif name == 'd2':
-            cx[i] = int((25-10)*percent + 15)
-            t_depl[i] = int(12*percent)
+            cx[i] = int((25-10)*percent1 + 15)
+            t_depl[i] = int(12*percent2)
         elif name == 'd3':
-            cx[i] = int((50-25)*percent + 25)
-            t_depl[i] = int(12*percent)
+            cx[i] = int((50-25)*percent1 + 25)
+            t_depl[i] = int(12*percent2)
         i = i + 1
 
             
@@ -206,7 +207,7 @@ if __name__ == '__main__':
     result.best_score = best_score
     result.snapshots = snapshots
     result.model = model
-    string = 'results/test_results' + str(opt_par.drought_type[0]) + '_' + str(opt_par.drought_type[1]) + '_' + str(percent) +'.dat' #remove curt when not running curtailment cost experiment
+    string = 'results/test_results' + str(opt_par.drought_type[0]) + '_' + str(opt_par.drought_type[1]) +'.dat' #remove curt when not running curtailment cost experiment
 
     with open(string, 'wb') as f: 
         pickle.dump(result, f)
