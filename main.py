@@ -131,12 +131,8 @@ if 0:
     i = 0
     for name in action:
         if name == 'd1':
-            print(cx[i])
-            print(t_depl[i])
             cx[i] = 15*percent1
-            print(cx[i])
             t_depl[i] = 12*percent2
-            print(t_depl[i])
         elif name == 'd2':
             cx[i] = (25-10)*percent1 + 15
             t_depl[i] = 12*percent2
