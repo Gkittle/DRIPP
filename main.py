@@ -124,19 +124,25 @@ if 0:
 
 #Sweeping experiment
 if 0:
-    percent1 = np.random.rand(int(time.time()) % (2**32))
-    percent2 = np.random.rand(int(time.time()) % (2**32) + 4)
+    np.random.seed(int(time.time()) % (2**32))
+    percent1 = np.random.rand()
+    np.random.seed(int(time.time()) % (2**32) + 4)
+    percent2 = np.random.rand()
     i = 0
     for name in action:
         if name == 'd1':
-            cx[i] = int(15*percent1)
-            t_depl[i] = int(12*percent2)
+            print(cx[i])
+            print(t_depl[i])
+            cx[i] = 15*percent1
+            print(cx[i])
+            t_depl[i] = 12*percent2
+            print(t_depl[i])
         elif name == 'd2':
-            cx[i] = int((25-10)*percent1 + 15)
-            t_depl[i] = int(12*percent2)
+            cx[i] = (25-10)*percent1 + 15
+            t_depl[i] = 12*percent2
         elif name == 'd3':
-            cx[i] = int((50-25)*percent1 + 25)
-            t_depl[i] = int(12*percent2)
+            cx[i] = (50-25)*percent1 + 25
+            t_depl[i] = 12*percent2
         i = i + 1
 
             
