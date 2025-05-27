@@ -62,7 +62,7 @@ class SBsim(object):
         self.distr_costs = []
         self.max_swp_market = 275
         self.market_cost  = 1500
-        self.curtailment_unitcost = curtailment_unitcost
+        self.curtailment_unitcost = 15.19*435.6 #$/AF
 
 
     def simulate(self, P, scenario):
@@ -148,6 +148,7 @@ class SBsim(object):
         nc_all               = []
         ngi_all              = []
         nswp_all             = []
+        cost_curtail         = []
         
         for _ in range(self.nsim):            
             #s should be randomized when selecting from the drought scenarios?
@@ -194,6 +195,14 @@ class SBsim(object):
             surface_cost      = 0
             curtailment_cost  = 0
             count             = 5
+            surface_cost_yearly = 0
+            dis_cost_yearly   = 0
+
+            Fixed_Cost        = 1503937 #$ the constant yearly revenue from fixed fees
+            R_t1              = 5.10*435.6 #$/AF the initial rate for tier 1 water use
+            V_t1              = min(self.demand)*(1-self.capacity[[i for i in range(len(self.action_name)) if self.action_name[i] == 'd3']]/100) #Calculating the constant tier 1 volume per month in AF
+            per_change_rate   = 1 #percentage change in volumetric rate charge
+            V_t2_year    = 0
             policy_triggered  = []
     
     
@@ -368,6 +377,7 @@ class SBsim(object):
                 current_curtail = self.demand[(t%12)]*( reduction_amount[t])
                 curtailment_magnitude.append(current_curtail)
                 d = max( 0, dem - installed_capacity[t] - md[t] )
+                V_t2_year += max(0,dem - V_t1 - current_curtail)
                 deficit_track.append(d)
 
                 SS = sc[-1] + sgi[-1] + sswp[-1]
@@ -382,12 +392,6 @@ class SBsim(object):
 
                 if any([SS < 0, uc < 0, ugi < 0, uswp < 0]):
                     sys.stdout.write(f"ERROR: negative water balance values [SS,uc,ugi,uswp]: {[SS,uc,ugi,uswp]}\n")
-                
-                #if uswp*d > self.swp.max_release:
-                #    while uswp*d > self.swp.max_release:
-                #        uswp -= 0.05
-                #        uc += 0.04
-                #        ugi += 0.01
 
                 if uswp*d > self.swp.max_release:
                     #altering the percentage allocation by decreasing swp by 5% and increasing c by 4% and gi by 1% as a ratio of percentages so swp max release is not violated
@@ -421,27 +425,15 @@ class SBsim(object):
                 rc_all.append(r_c)
                 nc_all.append(nc_)
     
-                #if any([s_ < 0, uc < 0]):
-                #    print("HERE")
-
                 s_, r_gi  = self.gibraltar.integration(sgi[t], ugi, ngi[t], d)
                 sgi.append(s_)
                 rgi_all.append(r_gi)
                 ngi_all.append(ngi[t])
     
-                #if any([s_ < 0, ugi < 0]):
-                #    print("HERE")
-
                 s_, r_swp  = self.swp.integration(sswp[t], uswp, nswp_, d)
                 sswp.append(s_)
                 rswp_all.append(r_swp)
                 nswp_all.append(nswp_)
-                
-                #if any([s_ < 0, uswp < 0]):
-                #    print("HERE")
-
-                #print(f"sim_individual: {[sc[-1], sgi[-1], sswp[-1],uc,ugi,uswp, nc_, ngi[t], nswp_]}")
-
                 
                 # calculation of deficit for penalty
                 deficit = max( 0, dem - r_swp - r_c - r_gi - md[t] - installed_capacity[t]) #altered demand to be the curtailed demand
@@ -457,10 +449,14 @@ class SBsim(object):
                     def_penalty_.append(def_penalty)
                 
    ############## Calculation of costs
-                surface_cost += self.compute_sf_stepcost(r_c, r_gi, md[t], r_swp, market)/10e6
-                curtailment_cost += current_curtail*self.curtailment_unitcost/10e6
+                surf_cval = self.compute_sf_stepcost(r_c, r_gi, md[t], r_swp, market)/10e6
+                surface_cost += surf_cval
+                surface_cost_yearly += surf_cval
+                curtailment_cost += current_curtail*self.curtailment_unitcost*per_change_rate/10e6
+                cost_curtail.append(self.curtailment_unitcost*per_change_rate/10e6)
                         
                 # distribution costs
+                dis_cost_before = dis_cost
                 dis_cost += 1.8555*( dem/self.demand[t%12] )
                 if desal_capac[t] > 0:
                     dis_cost += 0.240
@@ -499,6 +495,23 @@ class SBsim(object):
                     dis_cost += 0.0014
                 if l1_capac[t] == 50:
                     dis_cost += - 0.0050
+           
+                dis_cost_yearly += dis_cost - dis_cost_before
+
+                if all([(t%12) == 0, t > 0]): #reevaluate pricing in January every year
+                    revenue_initial_yearly = (R_t1*V_t1*12 + self.curtailment_unitcost*V_t2_year + Fixed_Cost)/10e6
+                    costs_yearly = 0 #yearly surface cost, capex, opex, and distribution
+                    for tech, name in zip([desal_capac[-12:], wwtp_capac[-12:], l1_capac[-12:], l2_capac[-12:], l3_capac[-12:], l4_capac[-12:], l5_capac[-12:], l6_capac[-12:], l7_capac[-12:]], ['desal','wwtp','dec','dec','dec','dec','dec','dec','dec']):
+                        c, o = self.cost_from_action_ind(tech, name)
+                        costs_yearly += c + o
+                    costs_yearly += surface_cost_yearly
+                    costs_yearly += dis_cost_yearly
+                    per_change_rate = float(costs_yearly/revenue_initial_yearly)
+
+                    #reset values
+                    V_t2_year = 0
+                    surface_cost_yearly = 0
+                    dis_cost_yearly = 0
                     
             # Technology costs
             capex, opex = self.tech_cost(desal_capac, wwtp_capac, l1_capac, l2_capac, l3_capac, l4_capac, l5_capac, l6_capac, l7_capac)
@@ -528,6 +541,7 @@ class SBsim(object):
         log.nc = nc_all
         log.ngi = ngi_all
         log.nswp = nswp_all
+        log.curtailment_price = cost_curtail
         log.curtailed_demand = final_demand
         log.def_penalty = def_penalty
         log.demand = self.demand
@@ -600,6 +614,51 @@ class SBsim(object):
 
         return  uc, tech_loc, tech_cap
 
+    def cost_from_action_ind(self, capac, act_str):
+        t = 1
+        H = 12
+        tot_capex = 0
+        tot_opex = 0
+        c1 = 0.2*H
+        c2 = 0.4*H
+
+        if sum(capac)>0:
+            while t < H:
+                if capac[t] > capac[t-1]: #a construction
+                    if act_str == 'desal':
+                        act_name = 'SW' + str( int(capac[t]) )
+                    elif act_str == 'wwtp':
+                        if capac[t] == 100:
+                            act_name = 'NPR100'
+                        else:
+                            act_name = 'PR' + str( int(capac[t]) )
+                    else:
+                        if capac[t] == 20:
+                            act_name = 'NPR20'
+                        else:
+                            act_name = 'PR50'
+                    i = 0
+                    for action in self.action_name:
+                        if act_name == action:
+                            capex = float(self.cx[i])
+                            opex = float(self.om[i])/12 #O&M per month
+                        i+=1
+                    tech_life = 0
+                    T = t
+                    while all([T < H-1, capac[T] >= capac[T-1]]) :
+                        tech_life += 1
+                        T += 1
+                    tot_opex += opex*tech_life
+                    if all( [t+tech_life >= H, tech_life < c1] ):
+                        tot_capex += capex*(tech_life/c2) #reduce end-of-horizon problem
+                    else:
+                        tot_capex += capex
+                    if tech_life > c1:
+                        tot_capex += (tech_life - c1)*(capex/c1)
+                    t += tech_life
+                t += 1
+        return tot_capex, tot_opex
+
     def cost_from_action(self, capac, act_str):
         t = 1
         H = self.H
@@ -670,8 +729,8 @@ class SBsim(object):
                 break
             i = i + 1
 
-        Ti = int(min(self.H, t + t_depl))
-        Tf = int(min(self.H, Ti + 60)) #from the curve, forget effect after 60 months
+        Ti = int(min(self.H - 1, t + t_depl))
+        Tf = int(min(self.H - 1, Ti + 60)) #from the curve, forget effect after 60 months
         uptake = [1 - (1/(1+np.exp((tt-(c1*12))/c2))) for tt in range(Tf - Ti)]
         reduction_amount[Ti:Tf] = [((rr-exist_red)*up + exist_red) for exist_red,up in zip(reduction_amount[Ti:Tf],uptake)]
         reduction_amount[Tf:] = rr*np.ones(len(reduction_amount[Tf:]))
@@ -713,8 +772,8 @@ class SBsim(object):
 
             i = i + 1
 
-        Ti = min(t + t_depl, self.H)
-        Tf = min(Ti + int(term), self.H)
+        Ti = min(t + t_depl, self.H - 1)
+        Tf = min(Ti + int(term), self.H - 1)
         surv = [1/(1+np.exp((tt-(c1*12))/c2)) for tt in range(Tf - Ti)]
         array = []
         j = Ti

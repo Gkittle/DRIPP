@@ -131,13 +131,13 @@ if 0:
     i = 0
     for name in action:
         if name == 'd1':
-            cx[i] = 15*percent1
+            cx[i] = cx[i]*percent1
             t_depl[i] = 12*percent2
         elif name == 'd2':
-            cx[i] = (25-10)*percent1 + 15
+            cx[i] = cx[i]*percent1
             t_depl[i] = 12*percent2
         elif name == 'd3':
-            cx[i] = (50-25)*percent1 + 25
+            cx[i] = cx[i]*percent1
             t_depl[i] = 12*percent2
         i = i + 1
 
@@ -163,7 +163,7 @@ algorithm = PTreeOpt(model.simulate,
                      mu=mu_, 
                      mut_prob = mut_prob_,
                      cx_prob=cx_prob_,
-                     population_size=100, #set this parameter to 100 for full scale optimization and to 10 for scaled down 
+                     population_size=100, #set this parameter to 100 for full scale optimization and to 15 for scaled down 
                      max_depth=3,
                      multiobj=False,
                      num_policies = 6
