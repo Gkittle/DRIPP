@@ -7,3 +7,5 @@ There are also many repeated values in each of the lakes, shouldn't those be inc
 In simulation.py add the lakes/ water sources as an array of objects instead of hard coding them.
 
 This library doesn't include modeling the plant in detail.
+
+SB_water_demand.csv: monthly demand (HCF), tier 1 monthly demand (HCF), tier 2 monthly demand (HCF), tier 3 monthly demand (HCF), tier 1 monthly rate ($/HCF)

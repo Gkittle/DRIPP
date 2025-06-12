@@ -21,6 +21,7 @@ from swp_lake import SWP
 from policy import *
 import numpy.matlib as mat
 import sys
+import csv
 
 class log_results:
     pass
@@ -40,9 +41,24 @@ class SBsim(object):
         self.swp         = SWP(opt_par.drought_type)
         self.H           = self.gibraltar.H # length of time horizon
         self.Ny          = int(self.H/self.T) #number of years
-        self.demand      = np.loadtxt('data/SB_water_demand.txt') 
+        #self.demand      = np.loadtxt('data/SB_water_demand.txt') 
         self.nom_cost_sw = 100
         self.nom_cost_rs = 420 
+
+        with open('data/SB_water_demand.csv', newline='') as csvfile:
+            spamreader = csv.reader(csvfile, quoting = csv.QUOTE_NONNUMERIC)
+            demandreader = []
+            for row in spamreader:
+                demandreader.append(row)
+        
+        self.demand        = [val/435.6 for val in demandreader[1]] #AF
+        self.tier_1_demand = [val/435.6 for val in demandreader[2]] #AF
+        self.tier_2_demand = [val/435.6 for val in demandreader[3]] #AF
+        self.tier_3_demand = [val/435.6 for val in demandreader[4]] #AF
+        self.tier_1_rate   = [val*435.6 for val in demandreader[5]] #$/AF
+        self.tier_2_rate   = 15.19*435.6 #$/AF
+        self.tier_3_rate   = 28.5*435.6  #$/AF average of 28.45 and 28.54
+        self.Fixed_Cost    = 1503937 #$ the constant yearly revenue from fixed fees
 
         self.mds   = np.loadtxt('data/Inflow_Individual_Scenarios/mission_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
         self.sri12 = np.loadtxt('data/Inflow_Individual_Scenarios/gibrSRI12_pers'+str(opt_par.drought_type[0])+'_sev'+str(opt_par.drought_type[1])+'n_'+str(opt_par.drought_type[2])+'.txt')
@@ -62,7 +78,7 @@ class SBsim(object):
         self.distr_costs = []
         self.max_swp_market = 275
         self.market_cost  = 1500
-        self.curtailment_unitcost = 15.19*435.6 #$/AF
+        #self.curtailment_unitcost = 15.19*435.6 #$/AF
 
 
     def simulate(self, P, scenario):
@@ -148,7 +164,7 @@ class SBsim(object):
         nc_all               = []
         ngi_all              = []
         nswp_all             = []
-        cost_curtail         = []
+        #cost_curtail         = []
         
         for _ in range(self.nsim):            
             #s should be randomized when selecting from the drought scenarios?
@@ -191,19 +207,22 @@ class SBsim(object):
     
             def_penalty       = 0
             uc_capac          = np.zeros(H)
-            dis_cost          = 0
-            surface_cost      = 0
-            curtailment_cost  = 0
+            dis_cost          = []
+            surface_cost      = []
+            curtailment_cost  = []
             count             = 5
-            surface_cost_yearly = 0
-            dis_cost_yearly   = 0
+            #surface_cost_yearly = 0
+            #dis_cost_yearly   = 0
 
-            Fixed_Cost        = 1503937 #$ the constant yearly revenue from fixed fees
-            R_t1              = 5.10*435.6 #$/AF the initial rate for tier 1 water use
-            V_t1              = min(self.demand)*(1-self.capacity[[i for i in range(len(self.action_name)) if self.action_name[i] == 'd3']]/100) #Calculating the constant tier 1 volume per month in AF
+            #Fixed_Cost        = 1503937 #$ the constant yearly revenue from fixed fees
+            #R_t1              = 5.10*435.6 #$/AF the initial rate for tier 1 water use
+            #V_t1              = min(self.demand)*(1-self.capacity[[i for i in range(len(self.action_name)) if self.action_name[i] == 'd3']]/100) #Calculating the constant tier 1 volume per month in AF
             per_change_rate   = 1 #percentage change in volumetric rate charge
-            V_t2_year    = 0
+            #V_t2_year    = 0
             policy_triggered  = []
+            V_t1              = []
+            V_t2              = []
+            V_t3              = []
     
     
             # binary value that indicates whether the plant location is occupied by a plant (1) or not (0) or if a level of curtailment is triggered
@@ -377,8 +396,27 @@ class SBsim(object):
                 current_curtail = self.demand[(t%12)]*( reduction_amount[t])
                 curtailment_magnitude.append(current_curtail)
                 d = max( 0, dem - installed_capacity[t] - md[t] )
-                V_t2_year += max(0,dem - V_t1 - current_curtail)
+                #V_t2_year += max(0,dem - V_t1 - current_curtail)
                 deficit_track.append(d)
+                
+                if current_curtail > self.tier_3_demand[(t%12)]:
+                    if current_curtail > self.tier_3_demand[(t%12)]+self.tier_2_demand[(t%12)]:
+                        curtail_dif_val = current_curtail + self.tier_2_demand[(t%12)] + self.tier_3_demand[(t%12)]
+                        V_t1.append(self.tier_1_demand[(t%12)] - curtail_dif_val)
+                        V_t2.append(0)
+                        V_t3.append(0)
+                        curtailment_cost.append(self.tier_3_demand[(t%12)]*self.tier_3_rate + self.tier_2_demand[(t%12)]*self.tier_2_rate + curtail_dif_val*self.tier_1_rate[(t%12)])
+                    else:
+                        curtail_dif_val = current_curtail + self.tier_3_demand[(t%12)]
+                        V_t1.append(self.tier_1_demand[(t%12)])
+                        V_t2.append(self.tier_2_demand[(t%12)] - curtail_dif_val)
+                        V_t3.append(0)
+                        curtailment_cost.append(self.tier_3_demand[(t%12)]*self.tier_3_rate + curtail_dif_val*self.tier_2_rate)
+                else:
+                    V_t1.append(self.tier_1_demand[(t%12)])
+                    V_t2.append(self.tier_2_demand[(t%12)])
+                    V_t3.append(self.tier_3_demand[(t%12)] - current_curtail)
+                    curtailment_cost.append(current_curtail*self.tier_3_rate)
 
                 SS = sc[-1] + sgi[-1] + sswp[-1]
                 if SS > 0:
@@ -450,74 +488,90 @@ class SBsim(object):
                 
    ############## Calculation of costs
                 surf_cval = self.compute_sf_stepcost(r_c, r_gi, md[t], r_swp, market)/10e6
-                surface_cost += surf_cval
-                surface_cost_yearly += surf_cval
-                curtailment_cost += current_curtail*self.curtailment_unitcost*per_change_rate/10e6
-                cost_curtail.append(self.curtailment_unitcost*per_change_rate/10e6)
+                surface_cost.append(surf_cval)
+                #surface_cost_yearly += surf_cval
+                #curtailment_cost += current_curtail*self.curtailment_unitcost*per_change_rate/10e6
+                #cost_curtail.append(self.curtailment_unitcost*per_change_rate/10e6)
                         
                 # distribution costs
-                dis_cost_before = dis_cost
-                dis_cost += 1.8555*( dem/self.demand[t%12] )
+                #dis_cost_before = dis_cost
+                dis_cost.append(1.8555*( dem/self.demand[t%12] ))
                 if desal_capac[t] > 0:
-                    dis_cost += 0.240
+                    dis_cost[-1] += 0.240
 
                 if l3_capac[t] == 20:
-                    dis_cost += - 0.1126
+                    dis_cost[-1] += - 0.1126
                 if l3_capac[t] == 50:
-                    dis_cost += - 0.1696
+                    dis_cost[-1] += - 0.1696
 
                 if l6_capac[t] == 20:
-                    dis_cost += - 0.0149
+                    dis_cost[-1] += - 0.0149
                 if l6_capac[t] == 50:
-                    dis_cost += - 0.0163
+                    dis_cost[-1] += - 0.0163
 
                 if l2_capac[t] == 20:
-                    dis_cost +=  0.0121 #minus in individual, plus in reg
+                    dis_cost[-1] +=  0.0121 #minus in individual, plus in reg
                 if l2_capac[t] == 50:
-                    dis_cost += - 0.0199
+                    dis_cost[-1] += - 0.0199
 
                 if l4_capac[t] == 20:
-                    dis_cost += - 0.0119
+                    dis_cost[-1] += - 0.0119
                 if l4_capac[t] == 50:
-                    dis_cost += - 0.0127
+                    dis_cost[-1] += - 0.0127
 
                 if l5_capac[t] == 20:
-                    dis_cost += - 0.0195
+                    dis_cost[-1] += - 0.0195
                 if l5_capac[t] == 50:
-                    dis_cost += - 0.0125
+                    dis_cost[-1] += - 0.0125
 
                 if l7_capac[t] == 20:
-                    dis_cost += - 0.0096
+                    dis_cost[-1] += - 0.0096
                 if l7_capac[t] == 50:
-                    dis_cost += - 0.0151
+                    dis_cost[-1] += - 0.0151
 
                 if l1_capac[t] == 20:
-                    dis_cost += 0.0014
+                    dis_cost[-1] += 0.0014
                 if l1_capac[t] == 50:
-                    dis_cost += - 0.0050
+                    dis_cost[-1] += - 0.0050
            
-                dis_cost_yearly += dis_cost - dis_cost_before
+                #dis_cost_yearly += dis_cost - dis_cost_before
 
-                if all([(t%12) == 0, t > 0]): #reevaluate pricing in January every year
-                    revenue_initial_yearly = (R_t1*V_t1*12 + self.curtailment_unitcost*V_t2_year + Fixed_Cost)/10e6
-                    costs_yearly = 0 #yearly surface cost, capex, opex, and distribution
-                    for tech, name in zip([desal_capac[-12:], wwtp_capac[-12:], l1_capac[-12:], l2_capac[-12:], l3_capac[-12:], l4_capac[-12:], l5_capac[-12:], l6_capac[-12:], l7_capac[-12:]], ['desal','wwtp','dec','dec','dec','dec','dec','dec','dec']):
-                        c, o = self.cost_from_action_ind(tech, name)
-                        costs_yearly += c + o
-                    costs_yearly += surface_cost_yearly
-                    costs_yearly += dis_cost_yearly
-                    per_change_rate = float(costs_yearly/revenue_initial_yearly)
+                #if all([(t%12) == 0, t > 0]): #reevaluate pricing in January every year
+                    #revenue_initial_yearly = (R_t1*V_t1*12 + self.curtailment_unitcost*V_t2_year + Fixed_Cost)/10e6
+                #    revenue_initial_yearly = (self.tier_1_rate[(t%12)]*sum(V_t1[-12:]) + self.tier_2_rate*sum(V_t2[-12:]) + self.tier_3_rate*sum(V_t3[-12:]))/10e6
+                #    costs_yearly = 0 #yearly surface cost, capex, opex, and distribution
+                #    for tech, name in zip([desal_capac[-12:], wwtp_capac[-12:], l1_capac[-12:], l2_capac[-12:], l3_capac[-12:], l4_capac[-12:], l5_capac[-12:], l6_capac[-12:], l7_capac[-12:]], ['desal','wwtp','dec','dec','dec','dec','dec','dec','dec']):
+                #        c, o = self.cost_from_action_ind(tech, name)
+                #        costs_yearly += c + o
+                #    costs_yearly += surface_cost_yearly
+                #    costs_yearly += dis_cost_yearly
+                #    per_change_rate = float(costs_yearly/revenue_initial_yearly)
 
                     #reset values
-                    V_t2_year = 0
-                    surface_cost_yearly = 0
-                    dis_cost_yearly = 0
+                    #V_t2_year = 0
+                #    surface_cost_yearly = 0
+                #    dis_cost_yearly = 0
                     
             # Technology costs
             capex, opex = self.tech_cost(desal_capac, wwtp_capac, l1_capac, l2_capac, l3_capac, l4_capac, l5_capac, l6_capac, l7_capac)
     
+            tot_costs = []
+            for j in range(len(capex)):
+                c = float(capex[j] + opex[j] + surface_cost[j] + dis_cost[j]/10e6)
+                tot_costs.append(c)
+            
+            tot_revenue = []
+            for k in range(len(V_t1)):
+                tot_revenue.append(self.tier_1_rate[(k%12)]*V_t1[k] + self.tier_2_rate*V_t2[k] + self.tier_3_rate*V_t3[k])
+                if all([(k%12) == 0, k > 0]):
+                    revenue = sum(tot_revenue[-12:])
+                    yearly_cost = sum(tot_costs[k-12:k])
+                    x = np.max(float(yearly_cost/revenue),0)
+                    tot_revenue[-12:] = np.array(tot_revenue[-12:])*x
+                    curtailment_cost[k-12:k] = np.array(curtailment_cost[k-12:k])*x
+
             # Objective function is total costs + a penalty for deficit
-            Cost = surface_cost/self.Ny + curtailment_cost/self.Ny + opex/self.Ny + capex/self.Ny + dis_cost/self.Ny/10e6 
+            Cost = sum(surface_cost) + sum(curtailment_cost) + sum(opex) + sum(capex) + sum(dis_cost)/10e6 
             Jcost = Cost + def_penalty
             #print(f"Surface Cost: {surface_cost}")
             #print(f"Curtailment Cost: {curtailment_cost}")
@@ -541,7 +595,7 @@ class SBsim(object):
         log.nc = nc_all
         log.ngi = ngi_all
         log.nswp = nswp_all
-        log.curtailment_price = cost_curtail
+        #log.curtailment_price = cost_curtail
         log.curtailed_demand = final_demand
         log.def_penalty = def_penalty
         log.demand = self.demand
@@ -659,11 +713,54 @@ class SBsim(object):
                 t += 1
         return tot_capex, tot_opex
 
+#    def cost_from_action(self, capac, act_str):
+#        t = 1
+#        H = self.H
+#        tot_capex = 0
+#        tot_opex = 0
+#
+#        if sum(capac)>0:
+#            while t < H:
+#                if capac[t] > capac[t-1]: #a construction
+#                    if act_str == 'desal':
+#                        act_name = 'SW' + str( int(capac[t]) )
+#                    elif act_str == 'wwtp':
+#                        if capac[t] == 100:
+#                            act_name = 'NPR100'
+#                        else:
+#                            act_name = 'PR' + str( int(capac[t]) )
+#                    else:
+#                        if capac[t] == 20:
+#                            act_name = 'NPR20'
+#                        else:
+#                            act_name = 'PR50'
+#                    i = 0
+#                    for action in self.action_name:
+#                        if act_name == action:
+#                            capex = float(self.cx[i])
+#                            opex = float(self.om[i])/12 #O&M per month
+#                        i+=1
+#                    tech_life = 0
+#                    T = t
+#                    while all([T < self.H-1, capac[T] >= capac[T-1]]) :
+#                        tech_life += 1
+#                        T += 1
+#                    tot_opex += opex*tech_life
+#                    if all( [t+tech_life >= H, tech_life < 240] ):
+#                        tot_capex += capex*(tech_life/480) #reduce end-of-horizon problem
+#                    else:
+#                        tot_capex += capex
+#                    if tech_life > 240:
+#                        tot_capex += (tech_life - 240)*(capex/240)
+#                    t += tech_life
+#                t += 1
+#        return tot_capex, tot_opex
+    
     def cost_from_action(self, capac, act_str):
         t = 1
         H = self.H
-        tot_capex = 0
-        tot_opex = 0
+        tot_capex = np.zeros(H)
+        tot_opex = np.zeros(H)
 
         if sum(capac)>0:
             while t < H:
@@ -689,34 +786,41 @@ class SBsim(object):
                     tech_life = 0
                     T = t
                     while all([T < self.H-1, capac[T] >= capac[T-1]]) :
+                        tot_opex[T] += opex
                         tech_life += 1
                         T += 1
-                    tot_opex += opex*tech_life
-                    if all( [t+tech_life >= H, tech_life < 240] ):
-                        tot_capex += capex*(tech_life/480) #reduce end-of-horizon problem
-                    else:
-                        tot_capex += capex
-                    if tech_life > 240:
-                        tot_capex += (tech_life - 240)*(capex/240)
+                    
+                    fee = capex*0.01 #low interest loan fee
+                    r = 0.03 #loan interest loan rate
+                    term = 30 #years loan term
+                    tot_capex[t] += fee
+                    for j in range(term):
+                        if (t+12*(j+1)) < self.H:
+                            tot_capex[t+12*(j+1)] = (r*capex)/(1-((1+r)**(-1*(j+1))))
+
                     t += tech_life
                 t += 1
         return tot_capex, tot_opex
 
     def tech_cost(self, desal_capac, wwtp_capac, l1_capac, l2_capac, l3_capac, l4_capac, l5_capac, l6_capac, l7_capac):
-        capex = np.zeros(9)
-        opex = np.zeros(9)
-        capex[0], opex[0] = self.cost_from_action(desal_capac, 'desal')
-        capex[1], opex[1] = self.cost_from_action(wwtp_capac, 'wwtp')
-        capex[2], opex[2] = self.cost_from_action(l1_capac, 'dec')
-        capex[3], opex[3] = self.cost_from_action(l2_capac, 'dec')
-        capex[4], opex[4] = self.cost_from_action(l3_capac, 'dec')
-        capex[5], opex[5] = self.cost_from_action(l4_capac, 'dec')
-        capex[6], opex[6] = self.cost_from_action(l5_capac, 'dec')
-        capex[7], opex[7] = self.cost_from_action(l6_capac, 'dec')
-        capex[8], opex[8] = self.cost_from_action(l7_capac, 'dec')
 
+        capex0, opex0 = self.cost_from_action(desal_capac, 'desal')
+        capex1, opex1 = self.cost_from_action(wwtp_capac, 'wwtp')
+        capex2, opex2 = self.cost_from_action(l1_capac, 'dec')
+        capex3, opex3 = self.cost_from_action(l2_capac, 'dec')
+        capex4, opex4 = self.cost_from_action(l3_capac, 'dec')
+        capex5, opex5 = self.cost_from_action(l4_capac, 'dec')
+        capex6, opex6 = self.cost_from_action(l5_capac, 'dec')
+        capex7, opex7 = self.cost_from_action(l6_capac, 'dec')
+        capex8, opex8 = self.cost_from_action(l7_capac, 'dec')
 
-        return sum(capex), sum(opex)
+        capex = []
+        opex = []
+        for i in range(len(capex0)):
+            capex.append(capex0[i] + capex1[i] + capex2[i] + capex3[i] + capex4[i] + capex5[i] + capex6[i] + capex7[i] + capex8[i])
+            opex.append(opex0[i] + opex1[i] + opex2[i] + opex3[i] + opex4[i] + opex5[i] + opex6[i] + opex7[i] + opex8[i])
+
+        return capex, opex
 
     def conservation_measures(self, t, reduction_amount, policy, Location):
         c1 = 2.5
