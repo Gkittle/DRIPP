@@ -316,22 +316,25 @@ class SB(object):
 
                 if current_curtail > self.tier_3_demand[(t%12)]:
                     if current_curtail > self.tier_3_demand[(t%12)]+self.tier_2_demand[(t%12)]:
-                        curtail_dif_val = current_curtail + self.tier_2_demand[(t%12)] + self.tier_3_demand[(t%12)]
-                        V_t1.append(self.tier_1_demand[(t%12)] - curtail_dif_val)
+                        curtail_dif_val = max(current_curtail - self.tier_2_demand[(t%12)] - self.tier_3_demand[(t%12)],0)
+                        V_t1.append(max(0,self.tier_1_demand[(t%12)] - curtail_dif_val))
                         V_t2.append(0)
                         V_t3.append(0)
-                        curtailment_cost.append(self.tier_3_demand[(t%12)]*self.tier_3_rate + self.tier_2_demand[(t%12)]*self.tier_2_rate + curtail_dif_val*self.tier_1_rate[(t%12)])
+                        curtailment_cost.append(max(0,self.tier_3_demand[(t%12)]*self.tier_3_rate + self.tier_2_demand[(t%12)]*self.tier_2_rate + curtail_dif_val*self.tier_1_rate[(t%12)]))
                     else:
-                        curtail_dif_val = current_curtail + self.tier_3_demand[(t%12)]
-                        V_t1.append(self.tier_1_demand[(t%12)])
-                        V_t2.append(self.tier_2_demand[(t%12)] - curtail_dif_val)
+                        curtail_dif_val = max(current_curtail - self.tier_3_demand[(t%12)],0)
+                        V_t1.append(max(0,self.tier_1_demand[(t%12)]))
+                        V_t2.append(max(0,self.tier_2_demand[(t%12)] - curtail_dif_val))
                         V_t3.append(0)
-                        curtailment_cost.append(self.tier_3_demand[(t%12)]*self.tier_3_rate + curtail_dif_val*self.tier_2_rate)
+                        curtailment_cost.append(max(0,self.tier_3_demand[(t%12)]*self.tier_3_rate + curtail_dif_val*self.tier_2_rate))
                 else:
-                    V_t1.append(self.tier_1_demand[(t%12)])
-                    V_t2.append(self.tier_2_demand[(t%12)])
-                    V_t3.append(self.tier_3_demand[(t%12)] - current_curtail)
-                    curtailment_cost.append(current_curtail*self.tier_3_rate)
+                    V_t1.append(max(0,self.tier_1_demand[(t%12)]))
+                    V_t2.append(max(0,self.tier_2_demand[(t%12)]))
+                    V_t3.append(max(0,self.tier_3_demand[(t%12)] - current_curtail))
+                    curtailment_cost.append(max(0,current_curtail*self.tier_3_rate))
+
+                if any([V_t1[-1] < 0, V_t2[-1] < 0, V_t3[-1] < 0, curtailment_cost[-1] < 0]):
+                    sys.stdout.write(f"ERROR: negative tiered water demand volumes [V_t1, V_t2, V_t3, curtailment_cost]: {[V_t1[-1]], V_t2[-1], V_t3[-1], curtailment_cost[-1]}")
 
                 SS = sc[-1] + sgi[-1] + sswp[-1]
                 if SS > 0:
