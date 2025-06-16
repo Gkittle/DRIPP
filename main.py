@@ -123,24 +123,27 @@ if 0:
         i = i + 1
 
 #Sweeping experiment
-if 0:
-    np.random.seed(int(time.time()) % (2**32))
+if 1:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("id", help="seed number")
+    args = parser.parse_args()
+    id = int(args.id)
+    np.random.seed(int(id))
     percent1 = np.random.rand()
-    np.random.seed(int(time.time()) % (2**32) + 4)
+    np.random.seed(int(id) + 4)
     percent2 = np.random.rand()
     i = 0
     for name in action:
         if name == 'd1':
-            cx[i] = cx[i]*percent1
-            t_depl[i] = 12*percent2
+            capacity[i] = list(capacity)[i]*percent1
+            t_depl[i] = int(12*percent2)
         elif name == 'd2':
-            cx[i] = cx[i]*percent1
-            t_depl[i] = 12*percent2
+            capacity[i] = list(capacity)[i]*percent1
+            t_depl[i] = int(12*percent2)
         elif name == 'd3':
-            cx[i] = cx[i]*percent1
-            t_depl[i] = 12*percent2
+            capacity[i] = list(capacity)[i]*percent1
+            t_depl[i] = int(12*percent2)
         i = i + 1
-
             
 
 # define parameters for model and algorithm 
